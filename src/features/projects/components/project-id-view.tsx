@@ -6,8 +6,14 @@ import { FaGithub } from "react-icons/fa";
 
 import { cn } from "@/lib/utils";
 import { EditorView } from "@/features/editor/components/editor-view";
+import {
+  WebContainerProvider,
+  Terminal,
+  PreviewFrame,
+} from "@/features/preview";
 
 import { FileExplorer } from "./file-explorer";
+import { GitHubExportDialog } from "./github-export-dialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 const MIN_SIDEBAR_WIDTH = 200;
@@ -43,8 +49,15 @@ export const ProjectIdView = ({
   projectId: Id<"projects">
 }) => {
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   return (
+    <>
+      <GitHubExportDialog
+        projectId={projectId}
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+      />
     <div className="h-full flex flex-col">
       <nav className="h-8.75 flex items-center bg-sidebar border-b">
         <Tab
@@ -58,7 +71,10 @@ export const ProjectIdView = ({
           onClick={() => setActiveView("preview")}
         />
         <div className="flex-1 flex justify-end h-full">
-          <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
+          <div
+            onClick={() => setExportDialogOpen(true)}
+            className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30"
+          >
             <FaGithub className="size-3.5" />
             <span className="text-sm">Export</span>
           </div>
@@ -87,9 +103,19 @@ export const ProjectIdView = ({
           "absolute inset-0",
           activeView === "preview" ? "visible" : "invisible"
         )}>
-          <div>Preview</div>
+          <WebContainerProvider>
+            <Allotment vertical defaultSizes={[600, 400]}>
+              <Allotment.Pane>
+                <PreviewFrame />
+              </Allotment.Pane>
+              <Allotment.Pane minSize={100}>
+                <Terminal />
+              </Allotment.Pane>
+            </Allotment>
+          </WebContainerProvider>
         </div>
       </div>
     </div>
+    </>
   );
 };

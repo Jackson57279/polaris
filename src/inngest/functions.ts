@@ -1,7 +1,8 @@
 import { generateText } from "ai";
 import { inngest } from "./client";
-import { anthropic } from "@ai-sdk/anthropic";
 import { firecrawl } from "@/lib/firecrawl";
+
+import { anthropic } from "@/lib/ai-providers";
 
 const URL_REGEX = /https?:\/\/[^\s]+/g;
 

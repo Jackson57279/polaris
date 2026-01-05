@@ -55,6 +55,16 @@ export default defineSchema({
         v.literal("cancelled")
       )
     ),
+    toolCalls: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          args: v.any(),
+          result: v.optional(v.any()),
+        })
+      )
+    ),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_project_status", ["projectId", "status"]),

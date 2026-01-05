@@ -2,8 +2,8 @@ import { z } from "zod";
 import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { anthropic } from "@ai-sdk/anthropic";
 
+import { anthropic } from "@/lib/ai-providers";
 import { firecrawl } from "@/lib/firecrawl";
 
 const quickEditSchema = z.object({

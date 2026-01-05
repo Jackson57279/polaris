@@ -8,9 +8,13 @@ import { convex } from "@/lib/convex-client";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 
-const requestSchema = z.object({
+const postRequestSchema = z.object({
   conversationId: z.string(),
   message: z.string(),
+});
+
+const deleteRequestSchema = z.object({
+  messageId: z.string(),
 });
 
 export async function POST(request: Request) {
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { conversationId, message } = requestSchema.parse(body);
+  const { conversationId, message } = postRequestSchema.parse(body);
 
   // Call convex mutation, query
   const conversation = await convex.query(api.system.getConversationById, {
@@ -47,9 +51,18 @@ export async function POST(request: Request) {
 
   const projectId = conversation.projectId;
 
-  // TODO: Check for processing messages
+  const processingMessages = await convex.query(api.system.getProcessingMessages, {
+    internalKey,
+    projectId,
+  });
 
-  // Create user message
+  if (processingMessages.length > 0) {
+    return NextResponse.json(
+      { error: "A message is already being processed", messageId: processingMessages[0]._id },
+      { status: 409 }
+    );
+  }
+
   await convex.mutation(api.system.createMessage, {
     internalKey,
     conversationId: conversationId as Id<"conversations">,
@@ -57,8 +70,6 @@ export async function POST(request: Request) {
     role: "user",
     content: message,
   });
-
-    // Create assistant message placeholder with processing status
   const assistantMessageId = await convex.mutation(
     api.system.createMessage,
     {
@@ -84,4 +95,38 @@ export async function POST(request: Request) {
     eventId: event.ids[0],
     messageId: assistantMessageId,
   });
-};
+}
+
+export async function DELETE(request: Request) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
+
+  if (!internalKey) {
+    return NextResponse.json(
+      { error: "Internal key not configured" },
+      { status: 500 }
+    );
+  }
+
+  const body = await request.json();
+  const { messageId } = deleteRequestSchema.parse(body);
+
+  await inngest.send({
+    name: "message/cancel",
+    data: {
+      messageId,
+    },
+  });
+
+  await convex.mutation(api.system.cancelMessage, {
+    internalKey,
+    messageId: messageId as Id<"messages">,
+  });
+
+  return NextResponse.json({ success: true });
+}

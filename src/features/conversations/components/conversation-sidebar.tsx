@@ -37,6 +37,7 @@ import {
   useCreateConversation,
   useMessages,
 } from "../hooks/use-conversations";
+import { ConversationsHistoryDialog } from "./conversations-history-dialog";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 import { DEFAULT_CONVERSATION_TITLE } from "../../../../convex/constants";
@@ -49,6 +50,7 @@ export const ConversationSidebar = ({
   projectId,
 }: ConversationSidebarProps) => {
   const [input, setInput] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [
     selectedConversationId,
     setSelectedConversationId,
@@ -82,10 +84,27 @@ export const ConversationSidebar = ({
     }
   };
 
+  const handleCancel = async () => {
+    const processingMessage = conversationMessages?.find(
+      (msg) => msg.status === "processing"
+    );
+
+    if (!processingMessage) return;
+
+    try {
+      await ky.delete("/api/messages", {
+        json: {
+          messageId: processingMessage._id,
+        },
+      });
+    } catch {
+      toast.error("Failed to cancel message");
+    }
+  };
+
   const handleSubmit = async (message: PromptInputMessage) => {
-    // If processing and no new message, this is just a stop function
     if (isProcessing && !message.text) {
-      // TODO: await handleCancel()
+      await handleCancel();
       setInput("");
       return;
     }
@@ -115,7 +134,14 @@ export const ConversationSidebar = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-sidebar">
+    <>
+      <ConversationsHistoryDialog
+        projectId={projectId}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        onSelectConversation={setSelectedConversationId}
+      />
+      <div className="flex flex-col h-full bg-sidebar">
       <div className="h-8.75 flex items-center justify-between border-b">
         <div className="text-sm truncate pl-3">
           {activeConversation?.title ?? DEFAULT_CONVERSATION_TITLE}
@@ -124,6 +150,7 @@ export const ConversationSidebar = ({
           <Button
             size="icon-xs"
             variant="highlight"
+            onClick={() => setHistoryOpen(true)}
           >
             <HistoryIcon className="size-3.5" />
           </Button>
@@ -196,5 +223,6 @@ export const ConversationSidebar = ({
         </PromptInput>
       </div>
     </div>
+    </>
   );
 };

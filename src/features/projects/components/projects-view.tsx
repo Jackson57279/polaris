@@ -18,6 +18,8 @@ import { Kbd } from "@/components/ui/kbd";
 import { ProjectsList } from "./projects-list";
 import { useCreateProject } from "../hooks/use-projects";
 import { ProjectsCommandDialog } from "./projects-command-dialog";
+import { GitHubImportDialog } from "./github-import-dialog";
+import { AIGenerateDialog } from "./ai-generate-dialog";
 
 const font = Poppins({
   subsets: ["latin"],
@@ -28,6 +30,8 @@ export const ProjectsView = () => {
   const createProject = useCreateProject();
 
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -35,6 +39,14 @@ export const ProjectsView = () => {
         if (e.key === "k") {
           e.preventDefault();
           setCommandDialogOpen(true);
+        }
+        if (e.key === "i") {
+          e.preventDefault();
+          setImportDialogOpen(true);
+        }
+        if (e.key === "j") {
+          e.preventDefault();
+          setGenerateDialogOpen(true);
         }
       }
     }
@@ -48,6 +60,14 @@ export const ProjectsView = () => {
       <ProjectsCommandDialog
         open={commandDialogOpen}
         onOpenChange={setCommandDialogOpen}
+      />
+      <GitHubImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+      />
+      <AIGenerateDialog
+        open={generateDialogOpen}
+        onOpenChange={setGenerateDialogOpen}
       />
       <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center p-6 md:p-16">
         <div className="w-full max-w-sm mx-auto flex flex-col gap-4 items-center">
@@ -70,21 +90,7 @@ export const ProjectsView = () => {
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  const projectName = uniqueNamesGenerator({
-                    dictionaries: [
-                      adjectives,
-                      animals,
-                      colors,
-                    ],
-                    separator: "-",
-                    length: 3,
-                  });
-
-                  createProject({
-                    name: projectName,
-                  });
-                }}
+                onClick={() => setGenerateDialogOpen(true)}
                 className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
               >
                 <div className="flex items-center justify-between w-full">
@@ -95,13 +101,13 @@ export const ProjectsView = () => {
                 </div>
                 <div>
                   <span className="text-sm">
-                    New
+                    Generate
                   </span>
                 </div>
               </Button>
               <Button
                 variant="outline"
-                onClick={() => {}}
+                onClick={() => setImportDialogOpen(true)}
                 className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
               >
                 <div className="flex items-center justify-between w-full">
