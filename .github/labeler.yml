@@ -1,0 +1,68 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/**/*'
+          - 'src/app/**/*.tsx'
+          - '**/*.css'
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'convex/**/*'
+          - 'src/app/api/**/*'
+          - 'src/inngest/**/*'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.config.*'
+          - 'tsconfig.json'
+          - 'package.json'
+          - '.env*'
+
+editor:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/features/editor/**/*'
+
+ai:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/ai-elements/**/*'
+          - 'src/features/conversations/**/*'
+          - 'src/app/api/messages/**/*'
+          - 'src/app/api/suggestion/**/*'
+          - 'src/app/api/quick-edit/**/*'
+
+auth:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/features/auth/**/*'
+
+billing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/billing/**/*'
+          - 'src/app/billing/**/*'
+          - 'src/app/api/paddle/**/*'
+          - 'src/app/api/webhooks/paddle/**/*'
+          - 'src/hooks/useSubscription.ts'
+          - 'src/lib/paddle*.ts'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**/*'
+          - '**/*.test.*'
+          - '**/*.spec.*'
