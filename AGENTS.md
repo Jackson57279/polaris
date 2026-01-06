@@ -66,11 +66,11 @@ polaris/
 
 ## COMMANDS
 ```bash
-npm run dev       # Start development (Convex + Next.js + Inngest)
-npm run build     # Build for production
-npm run lint      # Run ESLint
-npx convex dev    # Start Convex backend
-npx inngest dev   # Start Inngest dev server
+bun run dev       # Start development (Convex + Next.js + Inngest)
+bun run build     # Build for production
+bun run lint      # Run ESLint
+bun convex dev    # Start Convex backend
+bunx inngest dev   # Start Inngest dev server
 ```
 
 ## NOTES

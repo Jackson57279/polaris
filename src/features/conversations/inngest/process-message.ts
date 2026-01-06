@@ -78,7 +78,7 @@ export const processMessage = inngest.createFunction(
 
     const result = await step.run("generate-ai-response", async () => {
       const response = await generateText({
-        model: anthropic("anthropic/claude-sonnet-4-20250514"),
+        model: anthropic("anthropic/claude-sonnet-4"),
         system: SYSTEM_PROMPT,
         messages: context.messages,
         tools,

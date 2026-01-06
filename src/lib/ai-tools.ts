@@ -1,13 +1,25 @@
 import { tool, zodSchema } from "ai";
 import { z } from "zod";
 
-import { convex } from "@/lib/convex-client";
+import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 
+// Global convex client for API route context
+let globalConvex: ConvexHttpClient | null = null;
+
+export function setGlobalConvex(client: ConvexHttpClient) {
+  globalConvex = client;
+}
+
+function getConvex(client?: ConvexHttpClient): ConvexHttpClient {
+  return client ?? globalConvex!;
+}
+
 export const createFileTools = (
   projectId: Id<"projects">,
-  internalKey: string
+  internalKey: string,
+  convex?: ConvexHttpClient
 ) => ({
   readFile: tool({
     description: "Read the contents of a file in the project",
@@ -19,8 +31,9 @@ export const createFileTools = (
       })
     ),
     execute: async ({ path }: { path: string }) => {
+      const client = getConvex(convex);
       try {
-        const file = await convex.query(api.system.readFileByPath, {
+        const file = await client.query(api.system.readFileByPath, {
           internalKey,
           projectId,
           path,
@@ -49,8 +62,9 @@ export const createFileTools = (
       })
     ),
     execute: async ({ path, content }: { path: string; content: string }) => {
+      const client = getConvex(convex);
       try {
-        await convex.mutation(api.system.writeFileByPath, {
+        await client.mutation(api.system.writeFileByPath, {
           internalKey,
           projectId,
           path,
@@ -75,8 +89,9 @@ export const createFileTools = (
       })
     ),
     execute: async ({ path }: { path: string }) => {
+      const client = getConvex(convex);
       try {
-        await convex.mutation(api.system.deleteFileByPath, {
+        await client.mutation(api.system.deleteFileByPath, {
           internalKey,
           projectId,
           path,
@@ -103,8 +118,9 @@ export const createFileTools = (
       })
     ),
     execute: async ({ path }: { path?: string }) => {
+      const client = getConvex(convex);
       try {
-        const files = await convex.query(api.system.listFilesByPath, {
+        const files = await client.query(api.system.listFilesByPath, {
           internalKey,
           projectId,
           path: path ?? "",
@@ -132,8 +148,9 @@ export const createFileTools = (
       "Get the complete file structure of the project as a tree view. Useful for understanding the project layout.",
     inputSchema: zodSchema(z.object({})),
     execute: async () => {
+      const client = getConvex(convex);
       try {
-        const structure = await convex.query(api.system.getProjectStructure, {
+        const structure = await client.query(api.system.getProjectStructure, {
           internalKey,
           projectId,
         });
