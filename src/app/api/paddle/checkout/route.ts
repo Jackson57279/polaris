@@ -8,7 +8,16 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const { tier, useTrial } = await request.json();
+  let tier: 'pro_monthly' | 'pro_yearly';
+  let useTrial: boolean | undefined;
+  
+  try {
+    const body = await request.json();
+    tier = body.tier;
+    useTrial = body.useTrial;
+  } catch {
+    return new NextResponse('Malformed JSON', { status: 400 });
+  }
 
   if (!tier || !['pro_monthly', 'pro_yearly'].includes(tier)) {
     return new NextResponse('Invalid tier', { status: 400 });

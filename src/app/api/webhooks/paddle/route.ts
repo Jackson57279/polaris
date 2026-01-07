@@ -6,8 +6,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhook, PaddleWebhookEvent } from '@/lib/paddle-server';
 import { convex } from '@/lib/convex-client';
-import { api } from '../../../convex/_generated/api';
-import { FREE_PROJECT_LIMIT } from '../../../convex/users';
+import { api } from '../../../../../convex/_generated/api';
+
+// Duplicated from convex/users.ts to avoid cross-module import issues
+const FREE_PROJECT_LIMIT = 10;
+
+// Explicit price ID to tier mapping loaded from environment variables
+const PRICE_ID_TO_TIER: Record<string, 'pro_monthly' | 'pro_yearly'> = {};
+
+function initializePriceIdMapping() {
+  const sandboxMonthly = process.env.PADDLE_SANDBOX_MONTHLY_PRICE_ID;
+  const sandboxYearly = process.env.PADDLE_SANDBOX_YEARLY_PRICE_ID;
+  const prodMonthly = process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID;
+  const prodYearly = process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID;
+
+  if (sandboxMonthly) PRICE_ID_TO_TIER[sandboxMonthly] = 'pro_monthly';
+  if (sandboxYearly) PRICE_ID_TO_TIER[sandboxYearly] = 'pro_yearly';
+  if (prodMonthly) PRICE_ID_TO_TIER[prodMonthly] = 'pro_monthly';
+  if (prodYearly) PRICE_ID_TO_TIER[prodYearly] = 'pro_yearly';
+}
+
+initializePriceIdMapping();
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('paddle-signature');
@@ -100,10 +119,9 @@ async function handleCustomerCreated(data: Record<string, unknown>) {
     });
 
     if (user) {
-      await convex.action(api.users.updateSubscription, {
+      await convex.mutation(api.users.updateSubscription, {
         clerkId: customData.clerkUserId,
         paddleCustomerId: data.id as string,
-        email: data.email as string,
       });
       console.log(`Linked user ${user._id} to Paddle customer ${data.id}`);
     }
@@ -127,7 +145,7 @@ async function handleSubscriptionCreated(data: Record<string, unknown>) {
   const tier = getTierFromPriceId(items?.[0]?.price?.id);
   const trialEndsAt = calculateTrialEnd(currentBillingPeriod);
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     paddleSubscriptionId: data.id as string,
     subscriptionStatus: data.status as string,
@@ -155,7 +173,7 @@ async function handleSubscriptionTrialing(data: Record<string, unknown>) {
 
   const trialEndsAt = calculateTrialEnd(currentBillingPeriod);
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     paddleSubscriptionId: data.id as string,
     subscriptionStatus: 'trialing',
@@ -178,7 +196,7 @@ async function handleTrialCompleted(data: Record<string, unknown>) {
     return;
   }
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     subscriptionStatus: 'active',
   });
@@ -198,7 +216,7 @@ async function handleTrialCanceled(data: Record<string, unknown>) {
     return;
   }
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     subscriptionStatus: 'free',
     subscriptionTier: 'free',
@@ -224,7 +242,7 @@ async function handleSubscriptionUpdated(data: Record<string, unknown>) {
 
   const tier = items?.[0] ? getTierFromPriceId(items[0].price?.id) : user.subscriptionTier;
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     paddleSubscriptionId: data.id as string,
     subscriptionStatus: data.status as string,
@@ -247,7 +265,7 @@ async function handleSubscriptionPaused(data: Record<string, unknown>) {
     return;
   }
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     subscriptionStatus: 'paused',
   });
@@ -267,7 +285,7 @@ async function handleSubscriptionResumed(data: Record<string, unknown>) {
     return;
   }
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     subscriptionStatus: 'active',
   });
@@ -287,7 +305,7 @@ async function handleSubscriptionCanceled(data: Record<string, unknown>) {
     return;
   }
 
-  await convex.action(api.users.updateSubscription, {
+  await convex.mutation(api.users.updateSubscription, {
     clerkId: user.clerkId,
     subscriptionStatus: 'canceled',
     projectLimit: FREE_PROJECT_LIMIT,
@@ -312,22 +330,22 @@ async function handleInvoicePaid(data: Record<string, unknown>) {
     });
 
     if (user) {
-      await convex.action(api.users.updateSubscription, {
-        clerkId: user.clerkId,
-        subscriptionStatus: 'active',
-      });
+      // Only update to 'active' if user is not currently in trial or past_due
+      // This prevents overwriting legitimate 'trialing' status
+      const currentStatus = user.subscriptionStatus;
+      if (currentStatus !== 'trialing') {
+        await convex.mutation(api.users.updateSubscription, {
+          clerkId: user.clerkId,
+          subscriptionStatus: 'active',
+        });
+      }
     }
   }
 }
 
 function getTierFromPriceId(priceId?: string): 'pro_monthly' | 'pro_yearly' | 'free' {
   if (!priceId) return 'free';
-  
-  if (priceId.includes('yearly') || priceId.includes('annual')) {
-    return 'pro_yearly';
-  }
-  
-  return 'pro_monthly';
+  return PRICE_ID_TO_TIER[priceId] || 'free';
 }
 
 function calculateTrialEnd(currentBillingPeriod?: { startsAt: string; endsAt: string }): number | undefined {

@@ -5,12 +5,33 @@
 
 import { Paddle, Environment } from '@paddle/paddle-node-sdk';
 
-const paddle = new Paddle(
-  process.env.PADDLE_API_KEY || '',
-  {
-    environment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT === 'sandbox' ? Environment.sandbox : Environment.production,
+function createPaddleClient(): Paddle {
+  const apiKey = process.env.PADDLE_API_KEY;
+  if (!apiKey) {
+    throw new Error('PADDLE_API_KEY environment variable is required but not set. Please configure it before starting the server.');
   }
-);
+  return new Paddle(
+    apiKey,
+    {
+      environment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT === 'sandbox' ? Environment.sandbox : Environment.production,
+    }
+  );
+}
+
+let _paddle: Paddle | null = null;
+
+function getPaddle(): Paddle {
+  if (!_paddle) {
+    _paddle = createPaddleClient();
+  }
+  return _paddle;
+}
+
+const paddle = new Proxy({} as Paddle, {
+  get(_, prop) {
+    return (getPaddle() as unknown as Record<string | symbol, unknown>)[prop];
+  }
+});
 
 export { paddle };
 
@@ -55,11 +76,15 @@ interface CheckoutData {
 
 export const paddleCheckout = {
   async create(data: CheckoutData) {
-    return await (paddle as unknown as { checkout: { create(data: CheckoutData): Promise<unknown> } }).checkout.create(data);
+    // TODO: Upgrade @paddle/paddle-node-sdk when checkout types are exported, then remove ts-expect-error
+    // @ts-expect-error - Paddle SDK does not export checkout types in current version
+    return await paddle.checkout.create(data);
   },
 
   async get(checkoutId: string) {
-    return await (paddle as unknown as { checkout: { get(id: string): Promise<unknown> } }).checkout.get(checkoutId);
+    // TODO: Upgrade @paddle/paddle-node-sdk when checkout types are exported, then remove ts-expect-error
+    // @ts-expect-error - Paddle SDK does not export checkout types in current version
+    return await paddle.checkout.get(checkoutId);
   },
 };
 
@@ -82,11 +107,12 @@ interface SubscriptionData {
 
 export const paddleSubscriptions = {
   async create(data: SubscriptionData) {
-    return await (paddle as unknown as { subscriptions: { create(data: SubscriptionData): Promise<unknown> } }).subscriptions.create(data);
+    // @ts-expect-error - Paddle SDK type mismatch for subscription creation
+    return await paddle.subscriptions.create(data);
   },
 
   async get(subscriptionId: string) {
-    return await (paddle as unknown as { subscriptions: { get(id: string): Promise<unknown> } }).subscriptions.get(subscriptionId);
+    return await paddle.subscriptions.get(subscriptionId);
   },
 
   async update(subscriptionId: string, data: {
@@ -94,31 +120,34 @@ export const paddleSubscriptions = {
     prorationBillingMode?: 'prorated_immediately' | 'prorated_next_billing_period' | 'full_immediately' | 'full_next_billing_period';
     effectiveDate?: string;
   }) {
-    return await (paddle as unknown as { subscriptions: { update(id: string, data: unknown): Promise<unknown> } }).subscriptions.update(subscriptionId, data);
+    return await paddle.subscriptions.update(subscriptionId, data);
   },
 
   async pause(subscriptionId: string, effectiveDate?: string) {
-    return await (paddle as unknown as { subscriptions: { pause(id: string, data?: { effectiveDate: string }): Promise<unknown> } }).subscriptions.pause(subscriptionId, effectiveDate ? { effectiveDate } : undefined);
+    // @ts-expect-error - Paddle SDK type mismatch for pause operation
+    return await paddle.subscriptions.pause(subscriptionId, effectiveDate ? { effectiveDate } : undefined);
   },
 
   async resume(subscriptionId: string, options?: { effectiveDate?: string; billImmediately?: boolean }) {
-    return await (paddle as unknown as { subscriptions: { resume(id: string, options?: { effectiveDate?: string; billImmediately?: boolean }): Promise<unknown> } }).subscriptions.resume(subscriptionId, options);
+    // @ts-expect-error - Paddle SDK type mismatch for resume operation
+    return await paddle.subscriptions.resume(subscriptionId, options);
   },
 
   async cancel(subscriptionId: string, effectiveDate?: string) {
-    return await (paddle as unknown as { subscriptions: { cancel(id: string, options?: { effectiveDate: string }): Promise<unknown> } }).subscriptions.cancel(subscriptionId, effectiveDate ? { effectiveDate } : undefined);
+    // @ts-expect-error - Paddle SDK type mismatch for cancel operation
+    return await paddle.subscriptions.cancel(subscriptionId, effectiveDate ? { effectiveDate } : undefined);
   },
 };
 
 export const paddlePrices = {
   async get(priceId: string) {
-    return await (paddle as unknown as { prices: { get(id: string): Promise<unknown> } }).prices.get(priceId);
+    return await paddle.prices.get(priceId);
   },
 };
 
 export const paddleProducts = {
   async get(productId: string) {
-    return await (paddle as unknown as { products: { get(id: string): Promise<unknown> } }).products.get(productId);
+    return await paddle.products.get(productId);
   },
 };
 
@@ -138,27 +167,28 @@ interface DiscountData {
 
 export const paddleDiscounts = {
   async create(data: DiscountData) {
-    return await (paddle as unknown as { discounts: { create(data: DiscountData): Promise<unknown> } }).discounts.create(data);
+    return await paddle.discounts.create(data);
   },
 
   async get(discountId: string) {
-    return await (paddle as unknown as { discounts: { get(id: string): Promise<unknown> } }).discounts.get(discountId);
+    return await paddle.discounts.get(discountId);
   },
 
   async update(discountId: string, data: { code?: string; maxRedemptions?: number; expiresAt?: string }) {
-    return await (paddle as unknown as { discounts: { update(id: string, data: unknown): Promise<unknown> } }).discounts.update(discountId, data);
+    return await paddle.discounts.update(discountId, data);
   },
 };
 
 export const paddleCustomerPortal = {
   async createSession(customerId: string, returnUrl?: string) {
-    return await (paddle as unknown as { customerPortal: { createSession(data: { customerId: string; returnUrl?: string }): Promise<unknown> } }).customerPortal.createSession({ customerId, returnUrl });
+    // @ts-expect-error - Paddle SDK does not export customerPortal types
+    return await paddle.customerPortal.createSession({ customerId, returnUrl });
   },
 };
 
 export const paddleTransactions = {
   async get(transactionId: string) {
-    return await (paddle as unknown as { transactions: { get(id: string): Promise<unknown> } }).transactions.get(transactionId);
+    return await paddle.transactions.get(transactionId);
   },
 };
 

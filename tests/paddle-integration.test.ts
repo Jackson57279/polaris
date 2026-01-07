@@ -3,31 +3,32 @@
  * Tests for subscription management, project limits, and trial functionality
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { FREE_PROJECT_LIMIT, TRIAL_DAYS } from '../convex/schema';
+import { getPriceIdForTier, formatPrice } from '../src/lib/paddle-server';
+import { getTrialDaysRemaining, isInTrialPeriod } from '../src/lib/paddle';
+
+let originalEnv: NodeJS.ProcessEnv;
+
+beforeEach(() => {
+  originalEnv = { ...process.env };
+});
+
+afterEach(() => {
+  process.env = originalEnv;
+});
 
 describe('Subscription Constants', () => {
   it('should export FREE_PROJECT_LIMIT as 10', () => {
-    const FREE_PROJECT_LIMIT = 10;
-    const TRIAL_DAYS = 7;
-    
     expect(FREE_PROJECT_LIMIT).toBe(10);
+  });
+
+  it('should export TRIAL_DAYS as 7', () => {
     expect(TRIAL_DAYS).toBe(7);
   });
 });
 
 describe('Price ID Helpers', () => {
-  const getPriceIdForTier = (tier: 'pro_monthly' | 'pro_yearly', environment: 'sandbox' | 'production'): string => {
-    if (environment === 'sandbox') {
-      return tier === 'pro_monthly' 
-        ? process.env.PADDLE_SANDBOX_MONTHLY_PRICE_ID || ''
-        : process.env.PADDLE_SANDBOX_YEARLY_PRICE_ID || '';
-    }
-    
-    return tier === 'pro_monthly'
-      ? process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID || ''
-      : process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID || '';
-  };
-
   it('should return empty string for sandbox when env not set', () => {
     delete process.env.PADDLE_SANDBOX_MONTHLY_PRICE_ID;
     const result = getPriceIdForTier('pro_monthly', 'sandbox');
@@ -39,17 +40,21 @@ describe('Price ID Helpers', () => {
     const result = getPriceIdForTier('pro_yearly', 'production');
     expect(result).toBe('pri_yearly_prod');
   });
+
+  it('should return sandbox monthly price when env is set', () => {
+    process.env.PADDLE_SANDBOX_MONTHLY_PRICE_ID = 'pri_sandbox_monthly';
+    const result = getPriceIdForTier('pro_monthly', 'sandbox');
+    expect(result).toBe('pri_sandbox_monthly');
+  });
+
+  it('should return sandbox yearly price when env is set', () => {
+    process.env.PADDLE_SANDBOX_YEARLY_PRICE_ID = 'pri_sandbox_yearly';
+    const result = getPriceIdForTier('pro_yearly', 'sandbox');
+    expect(result).toBe('pri_sandbox_yearly');
+  });
 });
 
 describe('Price Formatting', () => {
-  const formatPrice = (amount: string, currencyCode: string = 'USD'): string => {
-    const numericAmount = parseInt(amount) / 100;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(numericAmount);
-  };
-
   it('should format price correctly in USD', () => {
     expect(formatPrice('2900', 'USD')).toBe('$29.00');
     expect(formatPrice('29000', 'USD')).toBe('$290.00');
@@ -62,22 +67,6 @@ describe('Price Formatting', () => {
 });
 
 describe('Trial Calculations', () => {
-  const getTrialDaysRemaining = (trialEndsAt: number | null | undefined): number => {
-    if (!trialEndsAt) return 0;
-    
-    const now = Date.now();
-    const diff = trialEndsAt - now;
-    
-    if (diff <= 0) return 0;
-    
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
-
-  const isInTrialPeriod = (trialEndsAt: number | null | undefined): boolean => {
-    const daysRemaining = getTrialDaysRemaining(trialEndsAt);
-    return daysRemaining > 0;
-  };
-
   it('should calculate days remaining correctly for future date', () => {
     const now = Date.now();
     const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
@@ -150,9 +139,8 @@ describe('Tier Detection', () => {
 
 describe('Project Limit Logic', () => {
   it('should calculate remaining projects correctly', () => {
-    const projectLimit = 10;
     const projectCount = 3;
-    const remaining = projectLimit - projectCount;
+    const remaining = FREE_PROJECT_LIMIT - projectCount;
     expect(remaining).toBe(7);
   });
 
@@ -164,8 +152,8 @@ describe('Project Limit Logic', () => {
   });
 
   it('should deny project creation when at limit', () => {
-    const projectLimit: number = 10;
-    const projectCount: number = 10;
+    const projectLimit: number = FREE_PROJECT_LIMIT;
+    const projectCount: number = FREE_PROJECT_LIMIT;
     const canCreate = projectLimit === -1 || projectCount < projectLimit;
     expect(canCreate).toBe(false);
   });
@@ -313,20 +301,19 @@ describe('User Subscription Flow', () => {
         email: 'test@example.com',
         subscriptionStatus: 'free' as const,
         subscriptionTier: 'free' as const,
-        projectLimit: 10,
+        projectLimit: FREE_PROJECT_LIMIT,
         createdAt: now,
         updatedAt: now,
       };
       
       expect(newUser.subscriptionStatus).toBe('free');
       expect(newUser.subscriptionTier).toBe('free');
-      expect(newUser.projectLimit).toBe(10);
+      expect(newUser.projectLimit).toBe(FREE_PROJECT_LIMIT);
     });
   });
 
   describe('Trial Activation', () => {
     it('should activate trial with correct settings', () => {
-      const TRIAL_DAYS = 7;
       const now = Date.now();
       const trialEndsAt = now + (TRIAL_DAYS * 24 * 60 * 60 * 1000);
       
@@ -341,7 +328,7 @@ describe('User Subscription Flow', () => {
       expect(trialUser.projectLimit).toBe(-1);
       
       const daysRemaining = Math.ceil((trialEndsAt - now) / (1000 * 60 * 60 * 24));
-      expect(daysRemaining).toBe(7);
+      expect(daysRemaining).toBe(TRIAL_DAYS);
     });
   });
 
@@ -365,11 +352,11 @@ describe('User Subscription Flow', () => {
         subscriptionStatus: 'canceled' as const,
         subscriptionTier: 'free' as const,
         trialEndsAt: undefined,
-        projectLimit: 10,
+        projectLimit: FREE_PROJECT_LIMIT,
       };
       
       expect(canceledUser.subscriptionStatus).toBe('canceled');
-      expect(canceledUser.projectLimit).toBe(10);
+      expect(canceledUser.projectLimit).toBe(FREE_PROJECT_LIMIT);
     });
   });
 
@@ -397,7 +384,7 @@ describe('User Subscription Flow', () => {
     it('should check limit for free users with room', () => {
       const freeUser = {
         subscriptionStatus: 'free' as const,
-        projectLimit: 10,
+        projectLimit: FREE_PROJECT_LIMIT,
         projectCount: 5,
       };
       
@@ -406,12 +393,12 @@ describe('User Subscription Flow', () => {
       expect(freeUser.projectCount).toBeLessThan(freeUser.projectLimit);
     });
 
-  it('should deny project creation when at limit', () => {
-    const freeUserLimit = 10 as number;
-    const freeUserCount = 10 as number;
-    const canCreate = freeUserLimit === -1 || freeUserCount < freeUserLimit;
-    expect(canCreate).toBe(false);
-  });
+    it('should deny project creation when at limit', () => {
+      const freeUserLimit: number = FREE_PROJECT_LIMIT;
+      const freeUserCount: number = FREE_PROJECT_LIMIT;
+      const canCreate = freeUserLimit === -1 || freeUserCount < freeUserLimit;
+      expect(canCreate).toBe(false);
+    });
   });
 });
 

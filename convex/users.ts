@@ -32,7 +32,7 @@ export const getOrCreateUser = mutation({
 
     if (existingUser) {
       // Update last seen
-      await ctx.db.patch('users', existingUser._id, {
+      await ctx.db.patch(existingUser._id, {
         updatedAt: now,
       });
       return existingUser;
@@ -49,7 +49,7 @@ export const getOrCreateUser = mutation({
       updatedAt: now,
     });
 
-    return await ctx.db.get('users', userId);
+    return await ctx.db.get(userId);
   },
 });
 
@@ -166,9 +166,9 @@ export const updateSubscription = mutation({
       updateData.projectLimit = args.projectLimit;
     }
 
-    await ctx.db.patch('users', user._id, updateData);
+    await ctx.db.patch(user._id, updateData);
 
-    return await ctx.db.get('users', user._id);
+    return await ctx.db.get(user._id);
   },
 });
 
@@ -198,7 +198,7 @@ export const startTrial = mutation({
       throw new Error('User already has an active subscription or trial');
     }
 
-    await ctx.db.patch('users', user._id, {
+    await ctx.db.patch(user._id, {
       subscriptionStatus: 'trialing',
       subscriptionTier: args.tier,
       trialEndsAt,
@@ -231,7 +231,7 @@ export const cancelTrial = mutation({
       throw new Error('User is not in trial');
     }
 
-    await ctx.db.patch('users', user._id, {
+    await ctx.db.patch(user._id, {
       subscriptionStatus: 'free',
       subscriptionTier: 'free',
       trialEndsAt: undefined,
@@ -274,7 +274,7 @@ export const syncUserFromClerk = mutation({
 
     // Update email if changed
     if (user.email !== args.email) {
-      await ctx.db.patch('users', user._id, {
+      await ctx.db.patch(user._id, {
         email: args.email,
         updatedAt: Date.now(),
       });
