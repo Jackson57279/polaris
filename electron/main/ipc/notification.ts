@@ -10,7 +10,9 @@ import path from 'path';
 import electronLog from 'electron-log';
 
 /**
- * Get the default notification icon
+ * Load the application's default notification icon from the bundled resources.
+ *
+ * @returns The loaded `Electron.NativeImage`, or `undefined` if the icon file cannot be found or fails to load.
  */
 function getDefaultIcon(): Electron.NativeImage | undefined {
   const iconPath = path.join(__dirname, '../resources/icons/icon.png');
@@ -22,7 +24,14 @@ function getDefaultIcon(): Electron.NativeImage | undefined {
 }
 
 /**
- * Register notification IPC handlers
+ * Register IPC handlers that expose native notification and app-badge functionality to renderer processes.
+ *
+ * Registers handlers under the `notification:*` namespace to:
+ * - report whether notifications are supported (`notification:isSupported`)
+ * - show rich notifications with events forwarded to renderers (`notification:show`)
+ * - show a simple notification (`notification:simple`)
+ * - return a browser-like permission state (`notification:requestPermission`)
+ * - set and get the app badge count (`notification:setBadgeCount`, `notification:getBadgeCount`)
  */
 export function registerNotificationHandlers(): void {
   // Check if notifications are supported

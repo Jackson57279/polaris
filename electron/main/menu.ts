@@ -9,7 +9,13 @@ import { Menu, BrowserWindow, app, shell, MenuItemConstructorOptions } from 'ele
 import electronLog from 'electron-log';
 
 /**
- * Create the application menu
+ * Builds and installs the native application menu and wires menu actions to the renderer.
+ *
+ * The menu includes a macOS app menu when running on Darwin and the File, Edit, View,
+ * Window, and Help menus with platform-appropriate items and accelerators. Several menu
+ * actions send IPC messages to the provided main window or open external URLs.
+ *
+ * @param mainWindow - The BrowserWindow instance that receives IPC messages from menu actions
  */
 export function createApplicationMenu(mainWindow: BrowserWindow): void {
   const isMac = process.platform === 'darwin';
@@ -251,7 +257,9 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
 }
 
 /**
- * Create a context menu for the editor
+ * Build the editor context menu containing standard edit actions.
+ *
+ * @returns A Menu configured with Undo, Redo, Cut, Copy, Paste, and Select All actions.
  */
 export function createEditorContextMenu(): Menu {
   const template: MenuItemConstructorOptions[] = [
@@ -269,7 +277,16 @@ export function createEditorContextMenu(): Menu {
 }
 
 /**
- * Create a context menu for the file explorer
+ * Builds a context menu for the file explorer with common file and folder actions.
+ *
+ * @param isDirectory - Indicates whether the targeted item is a directory; may affect menu labeling or available actions.
+ * @param callbacks - Handlers invoked by corresponding menu actions.
+ * @param callbacks.onNewFile - Called when "New File" is selected.
+ * @param callbacks.onNewFolder - Called when "New Folder" is selected.
+ * @param callbacks.onRename - Called when "Rename" is selected.
+ * @param callbacks.onDelete - Called when "Delete" is selected.
+ * @param callbacks.onRevealInFinder - Called when "Reveal in Finder" / "Show in Explorer" is selected.
+ * @returns An Electron Menu configured with file-explorer actions (New File, New Folder, Rename, Delete, and reveal in system file manager).
  */
 export function createFileExplorerContextMenu(
   isDirectory: boolean,

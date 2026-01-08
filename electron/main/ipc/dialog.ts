@@ -9,14 +9,22 @@ import { ipcMain, dialog, BrowserWindow } from 'electron';
 import electronLog from 'electron-log';
 
 /**
- * Get the focused window for dialog parent
+ * Selects a BrowserWindow to be used as the parent for dialogs.
+ *
+ * Prefers the currently focused window, falls back to the first available window, or returns `undefined` if no windows exist.
+ *
+ * @returns The focused BrowserWindow if available; otherwise the first existing BrowserWindow, or `undefined` if none exist.
  */
 function getFocusedWindow(): BrowserWindow | undefined {
   return BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || undefined;
 }
 
 /**
- * Register dialog IPC handlers
+ * Register IPC handlers that expose native dialog operations to renderer processes.
+ *
+ * Registers handlers for opening and saving files/folders, showing message and error boxes,
+ * and a confirmation dialog. Each handler returns a standardized response shape (`{ success: true, data: ... }`
+ * or `{ success: false, error: ... }`) and logs errors via electron-log.
  */
 export function registerDialogHandlers(): void {
   // Show open dialog (file/folder picker)

@@ -17,6 +17,12 @@ interface EnvironmentIndicatorProps {
   showAlways?: boolean;
 }
 
+/**
+ * Displays a compact badge indicating the current runtime environment and platform.
+ *
+ * @param showAlways - If true, render the badge regardless of development mode; otherwise only render in development.
+ * @returns A Badge element showing an environment icon, label, and platform when visible, or `null` when not rendered.
+ */
 export function EnvironmentIndicator({
   className,
   showAlways = false,
@@ -85,10 +91,11 @@ export function EnvironmentIndicator({
 }
 
 /**
- * Feature Flags Debug Component
+ * Displays a compact debug panel that lists feature flags from the current environment when running in development.
  *
- * Shows available features for the current environment.
- * Only visible in development mode.
+ * Each feature is shown with a small colored indicator: green when truthy, red when falsy.
+ *
+ * @returns A JSX element containing the feature flags panel, or `null` when not visible.
  */
 export function FeatureFlagsDebug() {
   const [context, setContext] = useState<EnvironmentContext | null>(null);

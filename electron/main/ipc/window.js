@@ -13,13 +13,21 @@ exports.registerWindowHandlers = registerWindowHandlers;
 const electron_1 = require("electron");
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Get the focused window or first available window
+ * Retrieve the current BrowserWindow to operate on.
+ *
+ * @returns {import('electron').BrowserWindow | null} The focused BrowserWindow if present; otherwise the first available window; or `null` if no windows exist.
  */
 function getWindow() {
     return electron_1.BrowserWindow.getFocusedWindow() || electron_1.BrowserWindow.getAllWindows()[0] || null;
 }
 /**
- * Register window IPC handlers
+ * Register IPC handlers for renderer-to-main window management.
+ *
+ * Registers multiple `ipcMain` handlers under `window:*` (minimize, maximize,
+ * close, toggleFullscreen, isMaximized, isMinimized, isFullscreen, isFocused,
+ * getBounds, setBounds, getState, setTitle, focus, show, hide). Each handler
+ * operates on the current BrowserWindow (when available) and returns a
+ * standardized `{ success: boolean, data?: any, error?: string }` response.
  */
 function registerWindowHandlers() {
     // Minimize window

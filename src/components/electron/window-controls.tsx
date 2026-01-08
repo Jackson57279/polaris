@@ -17,6 +17,12 @@ interface WindowControlsProps {
   className?: string;
 }
 
+/**
+ * Render frameless-window controls (minimize, maximize/restore, close) for non-macOS Electron apps.
+ *
+ * @param className - Optional CSS class(es) applied to the control container
+ * @returns A React element containing the window control buttons, or `null` when not running in Electron or on macOS
+ */
 export function WindowControls({ className }: WindowControlsProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const platform = getPlatform();
@@ -116,6 +122,15 @@ interface DraggableRegionProps {
   className?: string;
 }
 
+/**
+ * Wraps content in a draggable region for frameless Electron windows when running inside Electron.
+ *
+ * Renders a div with `-webkit-app-region: drag` (and the `-webkit-app-region-drag` class) when in Electron; otherwise renders a plain div.
+ *
+ * @param children - Content to render inside the region
+ * @param className - Optional class name(s) to apply to the container
+ * @returns A div that enables window dragging in Electron or a regular div outside Electron
+ */
 export function DraggableRegion({ children, className }: DraggableRegionProps) {
   if (!isElectron()) {
     return <div className={className}>{children}</div>;
@@ -141,6 +156,11 @@ interface NonDraggableRegionProps {
   className?: string;
 }
 
+/**
+ * Renders a container that disables window dragging in Electron frameless windows and falls back to a normal div otherwise.
+ *
+ * @returns A `div` element that applies `-webkit-app-region: no-drag` when running in Electron, otherwise a standard `div`; contains the provided `children`.
+ */
 export function NonDraggableRegion({ children, className }: NonDraggableRegionProps) {
   if (!isElectron()) {
     return <div className={className}>{children}</div>;

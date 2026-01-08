@@ -26,6 +26,19 @@ module.exports = async function (context) {
   console.log('After-pack hook completed successfully.');
 };
 
+/**
+ * Perform Linux-specific post-processing on an unpacked Electron app directory.
+ *
+ * Sets executable permissions (rwxr-xr-x) on the main application binary if present,
+ * and attempts to set the SUID bit on the bundled `chrome-sandbox` (mode 4755).
+ * If setting SUID fails, a warning is emitted.
+ *
+ * @param {Object} context - Hook context provided by Electron Builder.
+ * @param {string} context.appOutDir - Path to the unpacked application output directory.
+ * @param {Object} context.packager - Packager instance containing app metadata.
+ * @param {Object} context.packager.appInfo - Application info.
+ * @param {string} context.packager.appInfo.productFilename - Filename of the main application binary.
+ */
 async function processLinux(context) {
   const { appOutDir } = context;
 
@@ -52,6 +65,12 @@ async function processLinux(context) {
   }
 }
 
+/**
+ * Perform Windows-specific after-pack post-processing for the packaged application.
+ *
+ * @param {Object} context - The after-pack hook context.
+ * @param {string} context.appOutDir - Path to the generated application output directory.
+ */
 async function processWindows(context) {
   const { appOutDir } = context;
 

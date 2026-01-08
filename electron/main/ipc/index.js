@@ -25,9 +25,9 @@ const shell_1 = require("./shell");
 Object.defineProperty(exports, "registerShellHandlers", { enumerable: true, get: function () { return shell_1.registerShellHandlers; } });
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Register all IPC handlers
+ * Initialize IPC handlers for all application domains.
  *
- * This should be called once during app initialization
+ * Call once during application initialization.
  */
 function registerAllIpcHandlers() {
     electron_log_1.default.info('Registering IPC handlers...');

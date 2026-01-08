@@ -10,7 +10,11 @@ import path from 'path';
 import electronLog from 'electron-log';
 
 /**
- * Register app IPC handlers
+ * Register IPC handlers on the main process to expose common app-level operations to renderers.
+ *
+ * Installs handlers for version/name/packaged status, common paths, lifecycle controls (quit/relaunch),
+ * platform and locale information, development mode check, resource path resolution, Windows AppUserModelID,
+ * GPU information, and app metrics. Handlers return a standardized `{ success: boolean, data?: any, error?: string }` payload.
  */
 export function registerAppHandlers(): void {
   // Get app version

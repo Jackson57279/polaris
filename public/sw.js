@@ -247,7 +247,11 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Helper functions
+/**
+ * Notify all service worker-controlled clients to process the queued offline actions.
+ *
+ * Posts a `{ type: 'PROCESS_OFFLINE_QUEUE' }` message to each matching client. Errors during client enumeration or messaging are caught and logged to the console.
+ */
 async function processOfflineActions() {
   try {
     const clients = await self.clients.matchAll();
@@ -260,6 +264,12 @@ async function processOfflineActions() {
   }
 }
 
+/**
+ * Calculate the total size in bytes of all responses stored across all caches.
+ *
+ * Iterates every cache and every cached response, summing the byte lengths of response bodies.
+ * @returns {number} The total size in bytes of all cached responses.
+ */
 async function getCacheSize() {
   const cacheNames = await caches.keys();
   let totalSize = 0;
@@ -280,6 +290,11 @@ async function getCacheSize() {
   return totalSize;
 }
 
+/**
+ * Attempts to fetch and store the given URLs in the service worker cache.
+ *
+ * Only same-origin URLs or those whose origin/hostname are explicitly whitelisted will be fetched and cached; untrusted URLs are skipped and a warning is emitted. Individual fetch or cache failures for each URL are caught and logged without aborting the overall operation.
+ * @param {string[]} urls - Array of request URLs to cache.
 async function cacheUrls(urls) {
   const cache = await caches.open(CACHE_NAME);
   
@@ -313,6 +328,11 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
+/**
+ * Instructs all controlled clients to initiate synchronization of AI suggestions.
+ *
+ * Sends a `SYNC_AI_SUGGESTIONS` message to every matched client window. Errors are handled internally and do not propagate.
+ */
 async function syncAISuggestions() {
   try {
     const clients = await self.clients.matchAll();

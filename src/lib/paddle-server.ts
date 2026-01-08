@@ -5,6 +5,12 @@
 
 import { Paddle, Environment } from '@paddle/paddle-node-sdk';
 
+/**
+ * Create a configured Paddle SDK client using the server API key and environment setting.
+ *
+ * @returns A Paddle client instance configured with the API key and sandbox/production environment.
+ * @throws If the `PADDLE_API_KEY` environment variable is not set.
+ */
 function createPaddleClient(): Paddle {
   const apiKey = process.env.PADDLE_API_KEY;
   if (!apiKey) {
@@ -20,6 +26,11 @@ function createPaddleClient(): Paddle {
 
 let _paddle: Paddle | null = null;
 
+/**
+ * Get the singleton Paddle client instance for server-side API calls.
+ *
+ * @returns The Paddle client instance, creating and caching it if it does not already exist.
+ */
 function getPaddle(): Paddle {
   if (!_paddle) {
     _paddle = createPaddleClient();
@@ -228,6 +239,14 @@ export interface PaddleWebhookEvent {
   id: string;
 }
 
+/**
+ * Parse and validate a Paddle webhook payload and return the resulting event object.
+ *
+ * @param body - Raw webhook request body as a string
+ * @param signature - Paddle signature extracted from the webhook headers
+ * @param secret - Webhook secret used to validate the signature
+ * @returns The verified webhook event as a `PaddleWebhookEvent`
+ */
 export function verifyWebhook(
   body: string,
   signature: string,
@@ -236,6 +255,13 @@ export function verifyWebhook(
   return paddle.webhooks.unmarshal(body, secret, signature) as unknown as PaddleWebhookEvent;
 }
 
+/**
+ * Formats a cent-based numeric amount string as a localized currency string.
+ *
+ * @param amount - The amount expressed in cents as a decimal string (e.g., `"100"` for one dollar)
+ * @param currencyCode - ISO 4217 currency code to format with (defaults to `'USD'`)
+ * @returns The amount formatted as a currency string (for example, `"$1.00"`)
+ */
 export function formatPrice(amount: string, currencyCode: string = 'USD'): string {
   const numericAmount = parseInt(amount) / 100;
   return new Intl.NumberFormat('en-US', {
@@ -244,6 +270,13 @@ export function formatPrice(amount: string, currencyCode: string = 'USD'): strin
   }).format(numericAmount);
 }
 
+/**
+ * Resolve the Paddle price ID for a subscription tier in the specified environment.
+ *
+ * @param tier - Which Pro tier's price ID to return: 'pro_monthly' or 'pro_yearly'
+ * @param environment - Which environment's price ID to use: 'sandbox' or 'production'
+ * @returns The matching price ID, or an empty string if the corresponding environment variable is not set
+ */
 export function getPriceIdForTier(
   tier: 'pro_monthly' | 'pro_yearly',
   environment: 'sandbox' | 'production'

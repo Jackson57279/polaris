@@ -61,7 +61,10 @@ else {
     });
 }
 /**
- * Handle protocol URLs (polaris://)
+ * Sends a polaris:// protocol URL to the renderer of the main window.
+ *
+ * If a main window exists, delivers the URL to its renderer; otherwise does nothing.
+ * @param {string} url - The polaris protocol URL to handle.
  */
 function handleProtocolUrl(url) {
     electron_log_1.default.info('Handling protocol URL:', url);
@@ -71,7 +74,11 @@ function handleProtocolUrl(url) {
     }
 }
 /**
- * Register the polaris:// protocol
+ * Configure the application as the system default handler for the `polaris://` protocol.
+ *
+ * In development (when launched via the Electron/node executable) registers the handler
+ * with the executable and current script path so protocol links open the running dev instance;
+ * in production registers the app as the default protocol client without additional arguments.
  */
 function registerProtocol() {
     if (process.defaultApp) {
@@ -86,7 +93,11 @@ function registerProtocol() {
     }
 }
 /**
- * Initialize the application
+ * Initialize application subsystems, start the local server, and create the main window.
+ *
+ * Registers the custom polaris protocol, starts the embedded Next.js server and stores its port,
+ * creates the main BrowserWindow, registers all IPC handlers, sets up the application menu,
+ * and initializes the auto-updater when running in a packaged (production) build.
  */
 async function initialize() {
     electron_log_1.default.info('Initializing Polaris IDE...');

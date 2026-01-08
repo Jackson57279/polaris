@@ -31,7 +31,12 @@ const FORBIDDEN_PATHS = [
     'C:\\Program Files (x86)',
 ];
 /**
- * Check if a path is safe to access
+ * Determine whether a given file system path is allowed for access.
+ *
+ * Validates that the provided path does not perform directory traversal that escapes the current directory and does not reside under any configured forbidden root paths.
+ *
+ * @param {string} filePath - The file or directory path to validate; may be relative or absolute.
+ * @returns {boolean} `true` if the path is considered safe to access, `false` otherwise.
  */
 function isPathSafe(filePath) {
     const resolved = path_1.default.resolve(filePath);
@@ -52,7 +57,15 @@ function isPathSafe(filePath) {
     return true;
 }
 /**
- * Register file system IPC handlers
+ * Register IPC handlers that expose native-like file system operations to renderer processes.
+ *
+ * The handlers perform path safety validation and return structured results in the form
+ * `{ success: boolean, data?: any, error?: string, code?: any }`. Exposed operations include:
+ * reading and writing files (text and base64), reading directory contents, creating and deleting
+ * entries, renaming and copying files, existence checks, retrieving file/directory stats, and
+ * watching/unwatching directories. Directory watchers forward events to the renderer:
+ * `fs:fileAdded`, `fs:fileChanged`, `fs:fileDeleted`, `fs:directoryAdded`, `fs:directoryDeleted`,
+ * and report errors via `fs:watchError`.
  */
 function registerFileSystemHandlers() {
     // Read file
@@ -339,8 +352,10 @@ function registerFileSystemHandlers() {
     electron_log_1.default.info('File system IPC handlers registered');
 }
 /**
- * Clean up all file watchers
- * Called when the app is closing
+ * Close and remove all active file system watchers.
+ *
+ * Awaits each watcher's close operation and clears the internal watcher registry.
+ * Intended to be called during application shutdown to ensure watchers are cleaned up.
  */
 async function cleanupFileWatchers() {
     electron_log_1.default.info('Cleaning up file watchers...');

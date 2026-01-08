@@ -14,7 +14,8 @@ const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Get the default notification icon
+ * Resolves the default notification icon file and returns it as a NativeImage.
+ * @returns {Electron.NativeImage|undefined} The loaded NativeImage if the icon file exists and can be created, otherwise `undefined`.
  */
 function getDefaultIcon() {
     const iconPath = path_1.default.join(__dirname, '../resources/icons/icon.png');
@@ -26,7 +27,9 @@ function getDefaultIcon() {
     }
 }
 /**
- * Register notification IPC handlers
+ * Register IPC handlers that expose native notification functionality and app badge-count management to renderer processes.
+ *
+ * Registers handlers for checking notification support, showing rich or simple notifications (forwards click/close/action/failed events to the renderer), requesting a browser-like permission state ('granted' or 'denied'), and getting/setting the application badge count.
  */
 function registerNotificationHandlers() {
     // Check if notifications are supported

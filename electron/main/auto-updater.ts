@@ -170,7 +170,15 @@ export class AutoUpdaterManager {
 }
 
 /**
- * Register IPC handlers for auto-updater
+ * Registers IPC handlers on ipcMain to expose auto-updater operations to the renderer.
+ *
+ * Handlers registered:
+ * - `updater:checkForUpdates` — invokes `checkForUpdates` and returns an object `{ success: true, data }` on success or `{ success: false, error }` on failure.
+ * - `updater:downloadUpdate` — invokes `downloadUpdate` and returns an object `{ success: true, data }` on success or `{ success: false, error }` on failure.
+ * - `updater:installUpdate` — invokes `quitAndInstall` to trigger installation.
+ * - `updater:getCurrentVersion` — returns the current version string.
+ *
+ * @param updaterManager - The AutoUpdaterManager instance used to perform update actions
  */
 export function registerUpdaterHandlers(updaterManager: AutoUpdaterManager): void {
   // Check for updates

@@ -77,6 +77,12 @@ export const metadata: Metadata = {
   category: "technology",
 };
 
+/**
+ * Root HTML layout component that sets global fonts, PWA and viewport meta tags, resource hints, and wraps application content with project providers.
+ *
+ * @param children - The page or application content to render inside the providers.
+ * @returns The full HTML document structure used as the application's root layout.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

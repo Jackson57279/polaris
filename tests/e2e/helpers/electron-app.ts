@@ -24,9 +24,10 @@ const defaultLaunchOptions = {
 };
 
 /**
- * Launch the Electron application for testing
- * @param options - Custom launch options
- * @returns The Electron app and main window
+ * Start an Electron application with merged default and custom launch options for end-to-end tests.
+ *
+ * @param options - Launch options that override defaults; the `env` object is merged with default environment variables.
+ * @returns The launched Electron application and the Page for its main window
  */
 export async function launchElectronApp(
   options: Partial<typeof defaultLaunchOptions> = {}
@@ -52,36 +53,46 @@ export async function launchElectronApp(
 }
 
 /**
- * Close the Electron app gracefully
+ * Close the Electron application referenced by the context.
  */
 export async function closeElectronApp(context: ElectronAppContext): Promise<void> {
   await context.app.close();
 }
 
 /**
- * Wait for the Next.js server to be ready inside Electron
+ * Waits for the app's renderer to reach a network-idle state, indicating the Next.js server is ready.
+ *
+ * @param window - Playwright Page representing the Electron window to observe
+ * @param timeout - Maximum time to wait in milliseconds (default: 30000)
  */
 export async function waitForServerReady(window: Page, timeout = 30000): Promise<void> {
   await window.waitForLoadState('networkidle', { timeout });
 }
 
 /**
- * Get the app version from the Electron main process
+ * Retrieves the application's version string from the Electron main process.
+ *
+ * @returns The application's version string as reported by Electron's `app.getVersion()`.
  */
 export async function getAppVersion(app: ElectronApplication): Promise<string> {
   return app.evaluate(async ({ app }) => app.getVersion());
 }
 
 /**
- * Check if we're running in a packaged app
+ * Determine whether the Electron application is packaged.
+ *
+ * @returns `true` if the application is packaged, `false` otherwise.
  */
 export async function isPackaged(app: ElectronApplication): Promise<boolean> {
   return app.evaluate(async ({ app }) => app.isPackaged);
 }
 
 /**
- * Simulate file dialog selection
- * This patches the dialog module to return predefined paths
+ * Patch the Electron `dialog` to simulate a user selecting files.
+ *
+ * The patched `showOpenDialog` will resolve to `{ canceled: false, filePaths: [...] }`.
+ *
+ * @param filePaths - Array of file paths to be returned as the selection by the dialog
  */
 export async function mockFileDialog(
   app: ElectronApplication,
@@ -99,7 +110,10 @@ export async function mockFileDialog(
 }
 
 /**
- * Simulate save dialog selection
+ * Patches the Electron `dialog` implementation to simulate a user selecting a file in a save dialog.
+ *
+ * @param app - The Electron application whose main process `dialog` will be patched
+ * @param filePath - The file path to return as the selected save location
  */
 export async function mockSaveDialog(
   app: ElectronApplication,
@@ -117,7 +131,10 @@ export async function mockSaveDialog(
 }
 
 /**
- * Get window bounds
+ * Retrieve the bounds of the first BrowserWindow in the Electron application.
+ *
+ * @param app - The Electron application instance to query
+ * @returns An object `{ x, y, width, height }` with the window's position and size in pixels
  */
 export async function getWindowBounds(
   app: ElectronApplication
@@ -129,7 +146,9 @@ export async function getWindowBounds(
 }
 
 /**
- * Maximize/minimize window
+ * Maximizes the first BrowserWindow in the Electron application.
+ *
+ * @param app - The ElectronApplication whose first BrowserWindow will be maximized
  */
 export async function maximizeWindow(app: ElectronApplication): Promise<void> {
   await app.evaluate(async ({ BrowserWindow }) => {
@@ -138,6 +157,9 @@ export async function maximizeWindow(app: ElectronApplication): Promise<void> {
   });
 }
 
+/**
+ * Minimizes the application's first BrowserWindow.
+ */
 export async function minimizeWindow(app: ElectronApplication): Promise<void> {
   await app.evaluate(async ({ BrowserWindow }) => {
     const [window] = BrowserWindow.getAllWindows();
@@ -146,7 +168,10 @@ export async function minimizeWindow(app: ElectronApplication): Promise<void> {
 }
 
 /**
- * Take a screenshot of the Electron window
+ * Capture a full-page screenshot of the given Electron window and save it to the specified file path.
+ *
+ * @param window - The Playwright `Page` representing the Electron window to capture
+ * @param path - File system path where the screenshot will be written
  */
 export async function takeScreenshot(
   window: Page,
@@ -156,7 +181,12 @@ export async function takeScreenshot(
 }
 
 /**
- * Wait for element to be visible with custom timeout
+ * Waits for a DOM element matching `selector` to become visible in the given window.
+ *
+ * @param selector - CSS or other selector used to locate the element
+ * @param timeout - Maximum time in milliseconds to wait for the element to become visible (default: 10000)
+ *
+ * @throws If the element does not become visible before `timeout` elapses
  */
 export async function waitForElement(
   window: Page,
@@ -167,7 +197,11 @@ export async function waitForElement(
 }
 
 /**
- * Check if element exists
+ * Determine whether at least one DOM element on the page matches the given selector.
+ *
+ * @param window - The Playwright `Page` to query
+ * @param selector - A selector string (CSS, text, or any Playwright-supported selector) to match elements
+ * @returns `true` if at least one element matches `selector`, `false` otherwise.
  */
 export async function elementExists(
   window: Page,
@@ -178,7 +212,12 @@ export async function elementExists(
 }
 
 /**
- * Type text with realistic delay
+ * Types text into the element matching `selector`, inserting a delay between keystrokes to simulate realistic typing.
+ *
+ * @param window - The Playwright Page containing the target element
+ * @param selector - Selector string identifying the target element
+ * @param text - The text to type into the element
+ * @param delay - Milliseconds to wait between each keystroke (default: 50)
  */
 export async function typeText(
   window: Page,
@@ -191,7 +230,10 @@ export async function typeText(
 }
 
 /**
- * Execute keyboard shortcut
+ * Executes a keyboard shortcut in the given window by pressing modifier keys, then the final key, and releasing modifiers.
+ *
+ * @param window - Playwright page representing the window to receive the shortcut
+ * @param shortcut - Shortcut string with keys separated by `+` (e.g. `"Control+S"`, `"Meta+Shift+P"`). Modifiers are applied in left-to-right order and released in reverse order.
  */
 export async function executeShortcut(
   window: Page,
@@ -211,7 +253,9 @@ export async function executeShortcut(
 }
 
 /**
- * Trigger auto-update check
+ * Initiates an auto-update check in the application's main process.
+ *
+ * @param app - The Electron application whose updater will be checked
  */
 export async function triggerUpdateCheck(app: ElectronApplication): Promise<void> {
   await app.evaluate(async () => {
@@ -221,7 +265,12 @@ export async function triggerUpdateCheck(app: ElectronApplication): Promise<void
 }
 
 /**
- * Get console logs from the renderer process
+ * Collects console messages emitted by the renderer and returns a live array of formatted entries.
+ *
+ * The returned array is populated as messages arrive; each entry is formatted as `[type] message`.
+ *
+ * @param window - Playwright Page representing the renderer window
+ * @returns An array that accumulates formatted console messages from the renderer
  */
 export function collectConsoleLogs(window: Page): string[] {
   const logs: string[] = [];
@@ -232,7 +281,13 @@ export function collectConsoleLogs(window: Page): string[] {
 }
 
 /**
- * Wait for specific console message
+ * Waits until the page emits a console message matching the provided regular expression.
+ *
+ * @param window - The Playwright Page to listen for console messages on
+ * @param pattern - Regular expression to test console message text against
+ * @param timeout - Maximum time in milliseconds to wait for a matching message
+ * @returns The text of the first console message that matches `pattern`
+ * @throws Rejects with an Error if no matching message is observed before `timeout` milliseconds
  */
 export async function waitForConsoleMessage(
   window: Page,

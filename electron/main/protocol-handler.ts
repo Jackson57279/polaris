@@ -14,13 +14,10 @@ export interface ProtocolAction {
 }
 
 /**
- * Parse a polaris:// URL into an action
+ * Convert a polaris:// URL into a structured ProtocolAction describing the requested action and parameters.
  *
- * Supported formats:
- * - polaris://open?project=<projectId>
- * - polaris://import?github=<owner/repo>
- * - polaris://new
- * - polaris://auth/callback?token=<token>
+ * @param url - The polaris:// URL to parse
+ * @returns A `ProtocolAction` containing `action` and `params` when the URL uses the `polaris:` protocol and is parsed successfully; `null` otherwise.
  */
 export function parseProtocolUrl(url: string): ProtocolAction | null {
   try {
@@ -48,7 +45,17 @@ export function parseProtocolUrl(url: string): ProtocolAction | null {
 }
 
 /**
- * Handle a protocol action
+ * Route a parsed polaris:// protocol action to the renderer and ensure the main window is focused.
+ *
+ * Sends IPC messages to the renderer based on `protocolAction.action`:
+ * - 'open' -> 'protocol:openProject' with `params.project`
+ * - 'import' -> 'protocol:importGitHub' with `params.github`
+ * - 'new' -> 'protocol:newProject'
+ * - 'auth/callback' -> 'protocol:authCallback' with `params.token`
+ * Unknown actions send 'protocol:unknown' with the full action and params. After dispatching, restores the window if minimized and focuses it.
+ *
+ * @param mainWindow - The application's main BrowserWindow that will receive IPC messages and be focused.
+ * @param protocolAction - Parsed protocol action containing `action` and a string map of `params`.
  */
 export function handleProtocolAction(
   mainWindow: BrowserWindow,
@@ -94,9 +101,9 @@ export function handleProtocolAction(
 }
 
 /**
- * Register the protocol handler
+ * Register the application as the system handler for the polaris:// protocol.
  *
- * This should be called before app.ready
+ * Ensures the app is registered as the default protocol client for polaris://. Call this before the application `ready` event. On macOS, the function checks and sets the app as the default protocol client; on Windows and Linux it registers the protocol handler and, when running as the default app (development), supplies the executable and entry script so the protocol opens the running instance.
  */
 export function registerProtocolHandler(): void {
   // On macOS, we need to check if we're the default handler
@@ -128,10 +135,10 @@ export function registerProtocolHandler(): void {
 }
 
 /**
- * Handle protocol URLs on Windows (via command line arguments)
+ * Extracts the first `polaris://` URL from a list of command-line arguments.
  *
- * On Windows, the protocol URL is passed as a command line argument
- * when a second instance is launched
+ * @param args - Command-line arguments to search
+ * @returns The first argument that starts with `polaris://`, or `null` if none is found
  */
 export function getProtocolUrlFromArgs(args: string[]): string | null {
   // Look for polaris:// in the arguments
@@ -144,7 +151,11 @@ export function getProtocolUrlFromArgs(args: string[]): string | null {
 }
 
 /**
- * Create a polaris:// URL for a specific action
+ * Builds a polaris:// URL for the given action and optional query parameters.
+ *
+ * @param action - Action path appended after the scheme (for example `open` or `auth/callback`)
+ * @param params - Optional key/value pairs to serialize into the URL query string
+ * @returns The constructed polaris:// URL including a query string when `params` is provided
  */
 export function createProtocolUrl(
   action: string,

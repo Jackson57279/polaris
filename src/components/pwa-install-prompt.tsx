@@ -7,6 +7,15 @@ interface PWAInstallPromptProps {
   className?: string;
 }
 
+/**
+ * Render a PWA installation prompt dialog when the app is eligible, not installed, and the prompt has been triggered.
+ *
+ * The component listens for `beforeinstallprompt` and `appinstalled` events, shows a delayed install prompt (unless previously dismissed),
+ * supports installing via the browser prompt, dismissing (persists a dismissal flag in localStorage), and scheduling a reminder (reschedules the prompt after seven days).
+ *
+ * @param className - Optional CSS class names to append to the root prompt element
+ * @returns The prompt dialog JSX when shown, or `null` when hidden or when installation is not applicable
+ */
 export function PWAInstallPrompt({ className }: PWAInstallPromptProps) {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -161,7 +170,14 @@ export function PWAInstallPrompt({ className }: PWAInstallPromptProps) {
   );
 }
 
-// Inline installation guide component
+/**
+ * Render a toggleable inline guide that walks users through installing Polaris IDE as a Progressive Web App.
+ *
+ * The component displays a "How to Install" trigger button that opens a modal with numbered installation steps
+ * and a confirmation button to dismiss the guide.
+ *
+ * @returns A React element containing the trigger button and, when active, a modal dialog with step-by-step installation instructions.
+ */
 export function PWAInstallationGuide() {
   const [showGuide, setShowGuide] = useState(false);
 

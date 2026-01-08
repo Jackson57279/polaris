@@ -64,8 +64,9 @@ export interface MockElectronAPI {
 }
 
 /**
- * Create a fresh mock of the Electron API
- * Call this in beforeEach to get clean mocks for each test
+ * Create a fresh mock Electron renderer API populated with default mocked methods and event handlers for use in tests.
+ *
+ * @returns A new `MockElectronAPI` instance whose methods are spies/mocks and whose event handlers are no-op mock functions.
  */
 export function createMockElectronAPI(): MockElectronAPI {
   return {
@@ -137,8 +138,12 @@ export function createMockElectronAPI(): MockElectronAPI {
 export const mockElectronAPI = createMockElectronAPI();
 
 /**
- * Install mock Electron API on the window object
- * Call this in test setup to make window.electron available
+ * Attach a mock Electron API to the global window for use in tests.
+ *
+ * When provided, `customMock` is merged with the default mock; the resulting
+ * API is assigned to `window.electron`.
+ *
+ * @param customMock - Optional partial mock to merge with the default mock implementation
  */
 export function installMockElectronAPI(customMock?: Partial<MockElectronAPI>): void {
   const api = customMock ? { ...mockElectronAPI, ...customMock } : mockElectronAPI;
@@ -153,8 +158,9 @@ export function installMockElectronAPI(customMock?: Partial<MockElectronAPI>): v
 }
 
 /**
- * Remove mock Electron API from window object
- * Call this to simulate browser environment
+ * Restore a non-Electron browser environment by removing `window.electron` if present.
+ *
+ * Removes the mock Electron API from the global `window` to simulate a browser-only environment for tests.
  */
 export function removeMockElectronAPI(): void {
   if (typeof global.window !== 'undefined') {
@@ -164,7 +170,13 @@ export function removeMockElectronAPI(): void {
 }
 
 /**
- * Create a mock file system with predefined structure
+ * Install a mock in-memory file system backed by the provided path → content map.
+ *
+ * Overrides the test mock's fs.readFile and fs.writeFile so reads return the mapped content
+ * when the path exists and writes persist into the given map.
+ *
+ * @param files - A mutable mapping from file path to file content; reads return entries from this map,
+ *   and writes update or create entries in the map.
  */
 export function createMockFileSystem(files: Record<string, string>): void {
   mockElectronAPI.fs.readFile.mockImplementation(async (path: string) => {

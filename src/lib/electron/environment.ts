@@ -11,14 +11,20 @@
 export type Environment = 'electron' | 'browser-pwa' | 'browser';
 
 /**
- * Check if code is running on the server (SSR)
+ * Determines whether the current runtime is a server (SSR) environment.
+ *
+ * @returns `true` if running outside a browser (no `window`), `false` otherwise.
  */
 export function isServer(): boolean {
   return typeof window === 'undefined';
 }
 
 /**
- * Check if running in Electron environment
+ * Determines whether the current runtime is Electron.
+ *
+ * On server (non-browser) contexts this checks `process.env.IS_ELECTRON === 'true'`. On the client it detects a preload-exposed `window.electron`.
+ *
+ * @returns `true` if running in an Electron environment, `false` otherwise.
  */
 export function isElectron(): boolean {
   if (isServer()) {
@@ -30,7 +36,11 @@ export function isElectron(): boolean {
 }
 
 /**
- * Check if running as an installed PWA
+ * Determines whether the current execution context is an installed Progressive Web App (PWA).
+ *
+ * Returns `false` when executed in a non-browser (server) environment.
+ *
+ * @returns `true` if the app is running as an installed/standalone PWA (including iOS standalone), `false` otherwise.
  */
 export function isPWA(): boolean {
   if (isServer()) {
@@ -47,7 +57,9 @@ export function isPWA(): boolean {
 }
 
 /**
- * Check if running in a regular browser
+ * Determine whether the current runtime is a browser environment (including PWAs).
+ *
+ * @returns `true` if running in a browser or browser PWA environment, `false` otherwise.
  */
 export function isBrowser(): boolean {
   const env = getEnvironment();
@@ -55,7 +67,12 @@ export function isBrowser(): boolean {
 }
 
 /**
- * Get the current runtime environment
+ * Determine the current runtime environment.
+ *
+ * Checks server-side and client-side indicators to identify whether the app
+ * is running in Electron, a browser PWA, or a regular browser.
+ *
+ * @returns The detected Environment: `'electron'`, `'browser-pwa'`, or `'browser'`.
  */
 export function getEnvironment(): Environment {
   if (isServer()) {
@@ -74,7 +91,9 @@ export function getEnvironment(): Environment {
 }
 
 /**
- * Get platform information
+ * Identify the current operating platform for the runtime environment.
+ *
+ * @returns One of 'windows', 'macos', 'linux', 'ios', 'android', or 'unknown' indicating the detected platform
  */
 export function getPlatform(): 'windows' | 'macos' | 'linux' | 'ios' | 'android' | 'unknown' {
   if (isServer()) {
@@ -135,7 +154,15 @@ export interface FeatureFlags {
 }
 
 /**
- * Get feature flags for the current environment
+ * Compute feature flags that describe which platform capabilities are available
+ * for the current runtime environment.
+ *
+ * The returned flags reflect the detected environment (Electron, browser, or PWA)
+ * and runtime capabilities when applicable.
+ *
+ * @returns An object with boolean feature flags: `nativeFileSystem`, `webFileSystemAPI`,
+ * `autoUpdates`, `systemNotifications`, `systemTray`, `nativeMenus`, `deepLinking`,
+ * `serviceWorker`, `pwaInstall`, `multiWindow`, and `globalShortcuts`.
  */
 export function getFeatureFlags(): FeatureFlags {
   const env = getEnvironment();
@@ -229,7 +256,9 @@ export interface EnvironmentContext {
 }
 
 /**
- * Get the complete environment context
+ * Assemble a consolidated EnvironmentContext containing the detected environment, platform, feature flags, and convenience booleans.
+ *
+ * @returns The assembled EnvironmentContext with properties: `environment`, `platform`, `features`, `isElectron`, `isPWA`, and `isBrowser`.
  */
 export function getEnvironmentContext(): EnvironmentContext {
   return {

@@ -15,7 +15,11 @@ exports.createFileExplorerContextMenu = createFileExplorerContextMenu;
 const electron_1 = require("electron");
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Create the application menu
+ * Builds and sets the native application menu appropriate for the current platform.
+ *
+ * Menu items forward user actions to the renderer via IPC or open external links where applicable;
+ * the constructed menu is installed as the application's menu and its creation is logged.
+ * @param {import('electron').BrowserWindow} mainWindow - The main window whose webContents will receive menu action messages.
  */
 function createApplicationMenu(mainWindow) {
     const isMac = process.platform === 'darwin';
@@ -248,7 +252,8 @@ function createApplicationMenu(mainWindow) {
     electron_log_1.default.info('Application menu created');
 }
 /**
- * Create a context menu for the editor
+ * Builds the standard editor context menu containing undo/redo, cut/copy/paste, and select-all actions.
+ * @returns {import('electron').Menu} An Electron Menu configured for editor text-editing actions.
  */
 function createEditorContextMenu() {
     const template = [
@@ -264,7 +269,14 @@ function createEditorContextMenu() {
     return electron_1.Menu.buildFromTemplate(template);
 }
 /**
- * Create a context menu for the file explorer
+ * Build a context menu for the file explorer with file/folder and reveal actions.
+ * @param {Object} callbacks - Handlers invoked when menu items are clicked.
+ * @param {Function} callbacks.onNewFile - Called to create a new file.
+ * @param {Function} callbacks.onNewFolder - Called to create a new folder.
+ * @param {Function} callbacks.onRename - Called to rename the selected item.
+ * @param {Function} callbacks.onDelete - Called to delete the selected item.
+ * @param {Function} callbacks.onRevealInFinder - Called to reveal the item in Finder/Explorer.
+ * @returns {Electron.Menu} The constructed context menu.
  */
 function createFileExplorerContextMenu(isDirectory, callbacks) {
     const template = [
