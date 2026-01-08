@@ -1,0 +1,189 @@
+# Electron Builder Configuration
+# Build configuration for Windows and Linux desktop applications
+
+appId: com.polaris.ide
+productName: Polaris IDE
+copyright: Copyright © 2026 Polaris Team
+
+# Directories
+directories:
+  buildResources: electron/resources
+  output: dist-electron
+
+# Compression
+compression: maximum
+
+# Files to include in the build
+files:
+  - "!**/.git/**"
+  - "!**/node_modules/.bin"
+  - "!**/node_modules/**/*.md"
+  - "!**/node_modules/**/*.d.ts"
+  - "!**/node_modules/**/*.map"
+  - "!src/**"
+  - "!tests/**"
+  - "!.github/**"
+  - "!.vscode/**"
+  - "!*.config.*"
+  - "!*.md"
+  - "!.env*"
+  - electron/main/**/*.js
+  - electron/main/**/*.js.map
+  - electron/preload/**/*.js
+  - electron/preload/**/*.js.map
+  - .next/standalone/**
+  - .next/static/**
+  - public/**
+  - package.json
+
+# Extra files for the bundled Next.js server
+extraResources:
+  - from: ".next/standalone"
+    to: "server"
+    filter:
+      - "**/*"
+      - "!node_modules/.cache/**"
+  - from: ".next/static"
+    to: "server/.next/static"
+  - from: "public"
+    to: "server/public"
+
+# ASAR settings
+asar: true
+asarUnpack:
+  - "node_modules/electron-updater/**"
+  - "server/**"
+
+# ============================================
+# Windows Configuration
+# ============================================
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+  icon: electron/resources/icons/icon.ico
+  publisherName: Polaris Team
+  verifyUpdateCodeSignature: true
+  signDlls: true
+  # Signing is configured via environment variables:
+  # CSC_LINK - path to .pfx file or base64 encoded
+  # CSC_KEY_PASSWORD - password for the certificate
+
+# NSIS Installer Configuration
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Polaris IDE
+  uninstallDisplayName: Polaris IDE
+  installerIcon: electron/resources/icons/icon.ico
+  uninstallerIcon: electron/resources/icons/icon.ico
+  installerHeader: electron/resources/installerHeader.bmp
+  installerHeaderIcon: electron/resources/icons/icon.ico
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  # Custom install script for file associations
+  include: electron/resources/installer.nsh
+
+# ============================================
+# Linux Configuration
+# ============================================
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+    - target: rpm
+      arch:
+        - x64
+  icon: electron/resources/icons/
+  category: Development
+  maintainer: Polaris Team <team@polaris.dev>
+  vendor: Polaris
+  synopsis: AI-powered cloud IDE
+  description: |
+    Polaris IDE is an AI-powered cloud IDE for modern development.
+    Features include AI code suggestions, real-time collaboration,
+    and in-browser code execution.
+  mimeTypes:
+    - x-scheme-handler/polaris
+  desktop:
+    Name: Polaris IDE
+    Comment: AI-powered cloud IDE for modern development
+    Terminal: false
+    Type: Application
+    Categories: Development;IDE;TextEditor;
+    Keywords: ide;code;editor;development;ai;programming;
+
+# AppImage Configuration
+appImage:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  license: LICENSE
+
+# Debian Package Configuration
+deb:
+  afterInstall: electron/resources/linux/postinst
+  afterRemove: electron/resources/linux/postrm
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+  packageCategory: devel
+  priority: optional
+
+# RPM Package Configuration
+rpm:
+  afterInstall: electron/resources/linux/postinst
+  afterRemove: electron/resources/linux/postrm
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - libXtst
+    - xdg-utils
+    - at-spi2-core
+    - libuuid
+    - libsecret
+
+# ============================================
+# Auto-Update Configuration
+# ============================================
+publish:
+  provider: github
+  owner: your-org
+  repo: polaris
+  releaseType: release
+  vPrefixedTagName: true
+
+# Electron version and options
+electronDownload:
+  cache: .cache/electron
+
+# NPM rebuild
+npmRebuild: true
+
+# Build lifecycle hooks
+beforePack: scripts/before-pack.js
+afterPack: scripts/after-pack.js
+
+# Protocol association for deep linking
+protocols:
+  - name: Polaris IDE
+    schemes:
+      - polaris

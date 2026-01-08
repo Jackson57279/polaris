@@ -1,0 +1,27 @@
+#!/bin/bash
+# Polaris IDE - Post-installation script for Debian/RPM packages
+
+set -e
+
+# Update desktop database
+if command -v update-desktop-database &> /dev/null; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+
+# Update icon cache
+if command -v gtk-update-icon-cache &> /dev/null; then
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+fi
+
+# Register URL scheme handler
+if command -v xdg-mime &> /dev/null; then
+    xdg-mime default polaris-ide.desktop x-scheme-handler/polaris || true
+fi
+
+# Set capabilities for sandbox (if needed)
+CHROME_SANDBOX="/opt/Polaris IDE/chrome-sandbox"
+if [ -f "$CHROME_SANDBOX" ]; then
+    chmod 4755 "$CHROME_SANDBOX" || true
+fi
+
+echo "Polaris IDE installed successfully!"

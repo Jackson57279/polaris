@@ -2,6 +2,12 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Standalone output for Electron builds
+  // Only enable for Electron builds to keep Vercel deployment normal
+  ...(process.env.BUILD_ELECTRON === 'true' && {
+    output: 'standalone',
+  }),
+
   // Enable cross-origin isolation for SharedArrayBuffer support
   // Required for AI SDK streaming and WebContainer API
   async headers() {
