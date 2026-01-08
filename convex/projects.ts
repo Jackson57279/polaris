@@ -9,10 +9,38 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
+    const clerkId = identity.subject;
+
+    // Get user subscription info
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk", (q) => q.eq("clerkId", clerkId))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found. Please sign in again.");
+    }
+
+    // Check if user can create more projects
+    if (user.projectLimit !== -1) {
+      // Count existing projects
+      const existingProjects = await ctx.db
+        .query("projects")
+        .withIndex("by_owner", (q) => q.eq("ownerId", clerkId))
+        .collect();
+
+      if (existingProjects.length >= user.projectLimit) {
+        throw new Error(
+          `Project limit reached. You have ${user.projectLimit} free projects. ` +
+          "Please upgrade to Pro for unlimited projects."
+        );
+      }
+    }
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
-      ownerId: identity.subject,
+      ownerId: clerkId,
+      userId: user._id,
       updatedAt: Date.now(),
     });
 
@@ -55,7 +83,7 @@ export const getById = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.id);
+    const project = await ctx.db.get(args.id);
 
     if (!project) {
       throw new Error("Project not found");
@@ -77,7 +105,7 @@ export const rename = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.id);
+    const project = await ctx.db.get(args.id);
 
     if (!project) {
       throw new Error("Project not found");
@@ -87,7 +115,7 @@ export const rename = mutation({
       throw new Error("Unauthorized access to this project");
     }
 
-    await ctx.db.patch("projects", args.id, {
+    await ctx.db.patch(args.id, {
       name: args.name,
       updatedAt: Date.now(),
     });

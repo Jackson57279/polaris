@@ -1,10 +1,46 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+export const FREE_PROJECT_LIMIT = 10;
+export const TRIAL_DAYS = 7;
+
 export default defineSchema({
+  users: defineTable({
+    clerkId: v.string(),
+    email: v.string(),
+    paddleCustomerId: v.optional(v.string()),
+    paddleSubscriptionId: v.optional(v.string()),
+    subscriptionStatus: v.optional(
+      v.union(
+        v.literal("free"),
+        v.literal("trialing"),
+        v.literal("active"),
+        v.literal("paused"),
+        v.literal("canceled"),
+        v.literal("past_due")
+      )
+    ),
+    subscriptionTier: v.optional(
+      v.union(
+        v.literal("free"),
+        v.literal("pro_monthly"),
+        v.literal("pro_yearly")
+      )
+    ),
+    subscriptionPlanId: v.optional(v.string()),
+    projectLimit: v.number(),
+    trialEndsAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_clerk", ["clerkId"])
+    .index("by_paddle_customer", ["paddleCustomerId"])
+    .index("by_paddle_subscription", ["paddleSubscriptionId"]),
+
   projects: defineTable({
     name: v.string(),
-    ownerId: v.string(),
+    ownerId: v.string(), // Clerk user ID
+    userId: v.optional(v.id("users")), // Links to users table for subscription tracking
     updatedAt: v.number(),
     importStatus: v.optional(
       v.union(
@@ -22,7 +58,8 @@ export default defineSchema({
       ),
     ),
     exportRepoUrl: v.optional(v.string()),
-  }).index("by_owner", ["ownerId"]),
+  }).index("by_owner", ["ownerId"])
+    .index("by_user", ["userId"]),
 
   files: defineTable({
     projectId: v.id("projects"),
