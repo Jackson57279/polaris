@@ -1,6 +1,6 @@
 import { isElectron } from './environment';
 
-export interface FileSystemResult<T = any> {
+export interface FileSystemResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -80,7 +80,7 @@ export class FileSystemBridge {
     throw new Error('File System Access API not yet implemented for browser');
   }
 
-  async showOpenDialog(options: any): Promise<any> {
+  async showOpenDialog(options: unknown): Promise<{filePaths: string[], directoryHandle?: FileSystemDirectoryHandle, canceled: boolean}> {
     if (isElectron()) {
       const result = await window.electron.dialog.showOpenDialog(options);
       if (!result.success) {
@@ -91,8 +91,13 @@ export class FileSystemBridge {
 
     // Fallback to File System Access API (browser)
     if ('showDirectoryPicker' in window) {
-      const dirHandle = await (window as any).showDirectoryPicker();
-      return { filePaths: [dirHandle.name] };
+      const dirHandle = await (window as Window & { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker();
+      // Return the handle itself, not a fake path
+      return { 
+        filePaths: [], 
+        directoryHandle: dirHandle,
+        canceled: false 
+      };
     }
 
     throw new Error('File System Access API not supported');

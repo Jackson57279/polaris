@@ -4,7 +4,7 @@ import path from 'path';
 import { watch, FSWatcher } from 'chokidar';
 import log from 'electron-log';
 
-interface FileSystemResult<T = any> {
+interface FileSystemResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -12,38 +12,71 @@ interface FileSystemResult<T = any> {
 
 const watchers = new Map<string, FSWatcher>();
 
-function isPathSafe(filePath: string): boolean {
-  const resolved = path.resolve(filePath);
-  const forbidden = ['/etc', '/sys', '/proc', '/root'];
-  
-  if (process.platform === 'win32') {
-    const windowsForbidden = ['C:\\Windows', 'C:\\Program Files'];
-    return !windowsForbidden.some(dir => 
-      resolved.toLowerCase().startsWith(dir.toLowerCase())
-    );
+async function isPathSafe(filePath: string): Promise<boolean> {
+  try {
+    // Resolve symlinks and get real path
+    const realPath = await fs.realpath(filePath);
+    const normalized = path.normalize(realPath);
+    
+    // Define forbidden directories with proper separators
+    if (process.platform === 'win32') {
+      const lowerPath = normalized.toLowerCase();
+      const windowsForbidden = [
+        'c:\\windows',
+        'c:\\program files',
+        'c:\\programdata',
+        path.join(process.env.APPDATA || '').toLowerCase()
+      ];
+      return !windowsForbidden.some(forbidden => {
+        if (!forbidden) return false;
+        return lowerPath === forbidden || lowerPath.startsWith(forbidden + path.sep);
+      });
+    }
+    
+    // Unix/Linux/macOS forbidden paths
+    const forbidden = ['/etc', '/sys', '/proc', '/root', '/boot', '/dev', '/var', '/usr', '/bin', '/sbin'];
+    return !forbidden.some(dir => {
+      return normalized === dir || normalized.startsWith(dir + path.sep);
+    });
+  } catch {
+    // If realpath fails (e.g., file doesn't exist), fall back to resolve
+    const resolved = path.resolve(filePath);
+    const normalized = path.normalize(resolved);
+    
+    if (process.platform === 'win32') {
+      const lowerPath = normalized.toLowerCase();
+      const windowsForbidden = ['c:\\windows', 'c:\\program files', 'c:\\programdata'];
+      return !windowsForbidden.some(forbidden => {
+        return lowerPath === forbidden || lowerPath.startsWith(forbidden + path.sep);
+      });
+    }
+    
+    const forbidden = ['/etc', '/sys', '/proc', '/root', '/boot', '/dev', '/var', '/usr', '/bin', '/sbin'];
+    return !forbidden.some(dir => {
+      return normalized === dir || normalized.startsWith(dir + path.sep);
+    });
   }
-  
-  return !forbidden.some(dir => resolved.startsWith(dir));
 }
 
 export function registerFileSystemHandlers() {
   ipcMain.handle('fs:readFile', async (_, filePath: string): Promise<FileSystemResult<string>> => {
     try {
-      if (!isPathSafe(filePath)) {
+      if (!(await isPathSafe(filePath))) {
         return { success: false, error: 'Access to this path is forbidden' };
       }
 
       const content = await fs.readFile(filePath, 'utf-8');
       return { success: true, data: content };
-    } catch (error: any) {
+    } catch (error) {
       log.error('fs:readFile error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
   ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string): Promise<FileSystemResult> => {
     try {
-      if (!isPathSafe(filePath)) {
+      if (!(await isPathSafe(filePath))) {
         return { success: false, error: 'Access to this path is forbidden' };
       }
 
@@ -51,15 +84,16 @@ export function registerFileSystemHandlers() {
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, content, 'utf-8');
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       log.error('fs:writeFile error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
-  ipcMain.handle('fs:readDirectory', async (_, dirPath: string): Promise<FileSystemResult<any[]>> => {
+  ipcMain.handle('fs:readDirectory', async (_, dirPath: string): Promise<FileSystemResult<unknown[]>> => {
     try {
-      if (!isPathSafe(dirPath)) {
+      if (!(await isPathSafe(dirPath))) {
         return { success: false, error: 'Access to this path is forbidden' };
       }
 
@@ -67,41 +101,58 @@ export function registerFileSystemHandlers() {
       const items = await Promise.all(
         entries.map(async (entry) => {
           const fullPath = path.join(dirPath, entry.name);
-          const stats = await fs.stat(fullPath);
-          return {
-            name: entry.name,
-            path: fullPath,
-            type: entry.isDirectory() ? 'directory' : 'file',
-            size: stats.size,
-            modified: stats.mtime.getTime()
-          };
+          try {
+            const stats = await fs.stat(fullPath);
+            return {
+              name: entry.name,
+              path: fullPath,
+              type: entry.isDirectory() ? 'directory' : 'file',
+              size: stats.size,
+              modified: stats.mtime.getTime()
+            };
+          } catch (entryError) {
+            // Return entry with error flag if stat fails
+            const message = entryError instanceof Error ? entryError.message : 'Unknown error';
+            log.warn(`Failed to stat ${fullPath}:`, message);
+            return {
+              name: entry.name,
+              path: fullPath,
+              type: entry.isDirectory() ? 'directory' : 'file',
+              error: message
+            };
+          }
         })
       );
 
-      return { success: true, data: items };
-    } catch (error: any) {
+      // Filter out null entries if any
+      const validItems = items.filter(item => item !== null);
+
+      return { success: true, data: validItems };
+    } catch (error) {
       log.error('fs:readDirectory error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
   ipcMain.handle('fs:createDirectory', async (_, dirPath: string): Promise<FileSystemResult> => {
     try {
-      if (!isPathSafe(dirPath)) {
+      if (!(await isPathSafe(dirPath))) {
         return { success: false, error: 'Access to this path is forbidden' };
       }
 
       await fs.mkdir(dirPath, { recursive: true });
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       log.error('fs:createDirectory error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
   ipcMain.handle('fs:deleteEntry', async (_, entryPath: string): Promise<FileSystemResult> => {
     try {
-      if (!isPathSafe(entryPath)) {
+      if (!(await isPathSafe(entryPath))) {
         return { success: false, error: 'Access to this path is forbidden' };
       }
 
@@ -112,15 +163,16 @@ export function registerFileSystemHandlers() {
         await fs.unlink(entryPath);
       }
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       log.error('fs:deleteEntry error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
   ipcMain.handle('fs:watchDirectory', async (event, dirPath: string): Promise<FileSystemResult> => {
     try {
-      if (!isPathSafe(dirPath)) {
+      if (!(await isPathSafe(dirPath))) {
         return { success: false, error: 'Access to this path is forbidden' };
       }
 
@@ -136,26 +188,52 @@ export function registerFileSystemHandlers() {
 
       watcher
         .on('add', (filePath) => {
-          event.sender.send('fs:fileEvent', { type: 'add', path: filePath });
+          if (event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('fs:fileEvent', { type: 'add', path: filePath });
+          } else {
+            watcher.close();
+            watchers.delete(dirPath);
+          }
         })
         .on('change', (filePath) => {
-          event.sender.send('fs:fileEvent', { type: 'change', path: filePath });
+          if (event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('fs:fileEvent', { type: 'change', path: filePath });
+          } else {
+            watcher.close();
+            watchers.delete(dirPath);
+          }
         })
         .on('unlink', (filePath) => {
-          event.sender.send('fs:fileEvent', { type: 'delete', path: filePath });
+          if (event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('fs:fileEvent', { type: 'delete', path: filePath });
+          } else {
+            watcher.close();
+            watchers.delete(dirPath);
+          }
         })
         .on('addDir', (filePath) => {
-          event.sender.send('fs:fileEvent', { type: 'addDir', path: filePath });
+          if (event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('fs:fileEvent', { type: 'addDir', path: filePath });
+          } else {
+            watcher.close();
+            watchers.delete(dirPath);
+          }
         })
         .on('unlinkDir', (filePath) => {
-          event.sender.send('fs:fileEvent', { type: 'deleteDir', path: filePath });
+          if (event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('fs:fileEvent', { type: 'deleteDir', path: filePath });
+          } else {
+            watcher.close();
+            watchers.delete(dirPath);
+          }
         });
 
       watchers.set(dirPath, watcher);
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       log.error('fs:watchDirectory error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
@@ -167,9 +245,10 @@ export function registerFileSystemHandlers() {
         watchers.delete(dirPath);
       }
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       log.error('fs:unwatchDirectory error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 }

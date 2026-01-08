@@ -23,6 +23,8 @@ export function UpdateNotification() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateDownloaded, setUpdateDownloaded] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isElectron()) return;
@@ -51,11 +53,31 @@ export function UpdateNotification() {
 
   const handleDownload = async () => {
     setDownloading(true);
-    await window.electron.updater.downloadUpdate();
+    setDownloadError(null);
+    try {
+      const result = await window.electron.updater.downloadUpdate();
+      if (!result.success) {
+        setDownloadError(result.error || 'Failed to download update');
+        setDownloading(false);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An error occurred while downloading';
+      setDownloadError(message);
+      setDownloading(false);
+    }
   };
 
-  const handleInstall = () => {
-    window.electron.updater.installUpdate();
+  const handleInstall = async () => {
+    setInstallError(null);
+    try {
+      const result = await window.electron.updater.installUpdate();
+      if (!result.success) {
+        setInstallError(result.error || 'Failed to install update');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An error occurred during installation';
+      setInstallError(message);
+    }
   };
 
   if (!isElectron() || !updateAvailable || !visible) {
@@ -81,6 +103,18 @@ export function UpdateNotification() {
           <p className="text-sm text-muted-foreground mb-4">
             Version {updateInfo.version} is available
           </p>
+        )}
+
+        {downloadError && (
+          <div className="mb-4 p-2 bg-destructive/10 text-destructive text-sm rounded">
+            {downloadError}
+          </div>
+        )}
+
+        {installError && (
+          <div className="mb-4 p-2 bg-destructive/10 text-destructive text-sm rounded">
+            {installError}
+          </div>
         )}
 
         {downloading && (

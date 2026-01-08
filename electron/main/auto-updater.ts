@@ -9,32 +9,44 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   autoUpdater.on('checking-for-update', () => {
     log.info('Checking for updates...');
-    mainWindow.webContents.send('updater:status', 'Checking for updates...');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('updater:status', 'Checking for updates...');
+    }
   });
 
   autoUpdater.on('update-available', (info) => {
     log.info('Update available:', info);
-    mainWindow.webContents.send('updater:updateAvailable', info);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('updater:updateAvailable', info);
+    }
   });
 
   autoUpdater.on('update-not-available', () => {
     log.info('Update not available');
-    mainWindow.webContents.send('updater:status', 'No updates available');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('updater:status', 'No updates available');
+    }
   });
 
   autoUpdater.on('error', (err) => {
     log.error('Update error:', err);
-    mainWindow.webContents.send('updater:status', `Error: ${err.message}`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('updater:status', `Error: ${err.message}`);
+    }
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
     log.info(`Download progress: ${progressObj.percent}%`);
-    mainWindow.webContents.send('updater:downloadProgress', progressObj);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('updater:downloadProgress', progressObj);
+    }
   });
 
   autoUpdater.on('update-downloaded', () => {
     log.info('Update downloaded');
-    mainWindow.webContents.send('updater:updateDownloaded');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('updater:updateDownloaded');
+    }
   });
 
   // IPC handlers
@@ -42,9 +54,10 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     try {
       const result = await autoUpdater.checkForUpdates();
       return { success: true, data: result };
-    } catch (error: any) {
+    } catch (error) {
       log.error('Check for updates error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 
@@ -52,9 +65,10 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     try {
       await autoUpdater.downloadUpdate();
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       log.error('Download update error:', error);
-      return { success: false, error: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
     }
   });
 

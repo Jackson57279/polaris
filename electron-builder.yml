@@ -11,8 +11,8 @@ files:
   - "!src/**"
   - "!tests/**"
   - "!.next/cache/**"
-  - "electron/main/**/*.js"
-  - "electron/preload/**/*.js"
+  - "dist-electron/main/**/*.js"
+  - "dist-electron/preload/**/*.js"
   - ".next/standalone/**"
   - ".next/static/**"
   - "public/**"
@@ -54,5 +54,5 @@ linux:
 
 publish:
   provider: github
-  owner: yourusername
+  owner: Jackson57279
   repo: polaris

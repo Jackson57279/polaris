@@ -1,10 +1,10 @@
-import { Menu, BrowserWindow, shell } from 'electron';
+import { Menu, BrowserWindow, shell, MenuItemConstructorOptions } from 'electron';
 import { app } from 'electron';
 
 export function setupMenu(mainWindow: BrowserWindow) {
   const isMac = process.platform === 'darwin';
 
-  const template: any[] = [
+  const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{
       label: app.name,
       submenu: [
@@ -96,7 +96,7 @@ export function setupMenu(mainWindow: BrowserWindow) {
         {
           label: 'Learn More',
           click: async () => {
-            await shell.openExternal('https://github.com/yourusername/polaris');
+            await shell.openExternal('https://github.com/Jackson57279/polaris');
           }
         }
       ]

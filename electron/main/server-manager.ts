@@ -15,16 +15,20 @@ export class ServerManager {
 
   async start(): Promise<number> {
     try {
-      // Get available port
-      this.port = await getPort({ port: getPort.makeRange(3000, 3100) });
-      log.info(`Allocated port: ${this.port}`);
-
       if (this.isDev) {
         // In development, Next.js dev server is started separately
+        // Use the configured dev server port (default 3000)
+        this.port = parseInt(process.env.NEXT_DEV_PORT || '3000', 10);
+        log.info(`Using dev server port: ${this.port}`);
+        
         // Wait for it to be ready
         await this.waitForServer(this.port, 60000);
         return this.port;
       }
+
+      // Get available port for production
+      this.port = await getPort({ port: getPort.makeRange(3000, 3100) });
+      log.info(`Allocated port: ${this.port}`);
 
       // In production, start the standalone Next.js server
       const serverPath = path.join(process.resourcesPath, 'server', 'server.js');
@@ -70,12 +74,26 @@ export class ServerManager {
 
   async stop(): Promise<void> {
     if (this.serverProcess) {
+      // Check if process already exited
+      if (this.serverProcess.exitCode !== null || this.serverProcess.killed) {
+        log.info('Server already stopped');
+        return;
+      }
+
       return new Promise((resolve) => {
         if (this.serverProcess) {
+          // Set a timeout to force resolve after 5 seconds
+          const timeout = setTimeout(() => {
+            log.warn('Server stop timeout - forcing resolve');
+            resolve();
+          }, 5000);
+
           this.serverProcess.on('exit', () => {
+            clearTimeout(timeout);
             log.info('Server stopped');
             resolve();
           });
+          
           this.serverProcess.kill();
         } else {
           resolve();
@@ -91,7 +109,8 @@ export class ServerManager {
       try {
         await this.checkHealth(port);
         return;
-      } catch (error) {
+      } catch {
+        // Retry after 500ms
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }

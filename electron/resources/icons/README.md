@@ -10,8 +10,8 @@ For production builds, replace these placeholder files with actual icons.
 ## Generating Icons
 
 You can use tools like:
-- https://icon.kitchen/ (web-based)
-- https://www.electron.build/icons (electron-builder guide)
+- [Icon Kitchen](https://icon.kitchen/) (web-based)
+- [electron-builder icons](https://www.electron.build/icons) (electron-builder guide)
 - ImageMagick for command-line conversion
 
 ## Requirements

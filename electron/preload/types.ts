@@ -1,4 +1,4 @@
-export interface FileSystemResult<T = any> {
+export interface FileSystemResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

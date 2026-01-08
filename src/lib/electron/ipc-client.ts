@@ -32,12 +32,27 @@ export class IPCClient {
     return window.electron.fs.deleteEntry(entryPath);
   }
 
-  async dialog_showOpenDialog(options: any) {
+  async fs_watchDirectory(dirPath: string) {
+    this.checkElectron();
+    return window.electron.fs.watchDirectory(dirPath);
+  }
+
+  async fs_unwatchDirectory(dirPath: string) {
+    this.checkElectron();
+    return window.electron.fs.unwatchDirectory(dirPath);
+  }
+
+  fs_onFileEvent(callback: (event: unknown) => void) {
+    this.checkElectron();
+    return window.electron.fs.onFileEvent(callback);
+  }
+
+  async dialog_showOpenDialog(options: unknown) {
     this.checkElectron();
     return window.electron.dialog.showOpenDialog(options);
   }
 
-  async dialog_showSaveDialog(options: any) {
+  async dialog_showSaveDialog(options: unknown) {
     this.checkElectron();
     return window.electron.dialog.showSaveDialog(options);
   }
@@ -55,6 +70,41 @@ export class IPCClient {
   async window_close() {
     this.checkElectron();
     return window.electron.window.close();
+  }
+
+  async window_isMaximized() {
+    this.checkElectron();
+    return window.electron.window.isMaximized();
+  }
+
+  async updater_checkForUpdates() {
+    this.checkElectron();
+    return window.electron.updater.checkForUpdates();
+  }
+
+  async updater_downloadUpdate() {
+    this.checkElectron();
+    return window.electron.updater.downloadUpdate();
+  }
+
+  async updater_installUpdate() {
+    this.checkElectron();
+    return window.electron.updater.installUpdate();
+  }
+
+  updater_onUpdateAvailable(callback: (info: unknown) => void) {
+    this.checkElectron();
+    return window.electron.updater.onUpdateAvailable(callback);
+  }
+
+  updater_onDownloadProgress(callback: (progress: unknown) => void) {
+    this.checkElectron();
+    return window.electron.updater.onDownloadProgress(callback);
+  }
+
+  updater_onUpdateDownloaded(callback: () => void) {
+    this.checkElectron();
+    return window.electron.updater.onUpdateDownloaded(callback);
   }
 
   async notification_show(options: { title: string; body: string }) {

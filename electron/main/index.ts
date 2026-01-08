@@ -67,9 +67,26 @@ if (!gotTheLock) {
     // Register protocol in production
     if (!isDev) {
       protocol.registerFileProtocol('polaris', (request, callback) => {
-        const url = request.url.replace('polaris://', '');
         try {
-          return callback(path.normalize(path.join(__dirname, url)));
+          // Remove protocol prefix and decode
+          let sanitizedUrl = request.url.replace('polaris://', '');
+          sanitizedUrl = decodeURIComponent(sanitizedUrl);
+          // Remove leading slashes
+          sanitizedUrl = sanitizedUrl.replace(/^\/+/, '');
+          
+          // Define safe base directory
+          const baseDir = path.resolve(__dirname);
+          
+          // Resolve absolute path
+          const resolvedPath = path.resolve(baseDir, sanitizedUrl);
+          
+          // Verify path is within base directory
+          if (!resolvedPath.startsWith(baseDir)) {
+            log.error('Protocol path traversal attempt:', request.url);
+            return callback({ error: -6 }); // FILE_NOT_FOUND
+          }
+          
+          return callback(resolvedPath);
         } catch (error) {
           log.error('Protocol error:', error);
           return callback({ error: -2 });
@@ -92,10 +109,19 @@ if (!gotTheLock) {
     }
   });
 
-  app.on('before-quit', async () => {
+  app.on('before-quit', (event) => {
     log.info('Application shutting down...');
     if (serverManager) {
-      await serverManager.stop();
+      event.preventDefault();
+      serverManager.stop()
+        .then(() => {
+          log.info('Server stopped successfully');
+          app.quit();
+        })
+        .catch((error) => {
+          log.error('Error stopping server:', error);
+          app.quit();
+        });
     }
   });
 }
