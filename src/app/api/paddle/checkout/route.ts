@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { paddleCheckout, getPriceIdForTier } from '@/lib/paddle-server';
 
+/**
+ * Handle POST requests to create a Paddle checkout for a pro subscription tier.
+ *
+ * Parses the request body for `tier` (`'pro_monthly'` or `'pro_yearly'`) and optional `useTrial`,
+ * authenticates the caller, resolves the configured Paddle price ID for the environment,
+ * attempts to retrieve the user's email from Clerk, and creates a Paddle checkout with
+ * custom data including the Clerk user ID, tier, and trial flag.
+ *
+ * @param request - Incoming NextRequest with a JSON body containing `tier` and optional `useTrial`
+ * @returns A NextResponse containing JSON `{ checkoutUrl: string }` on success; otherwise a NextResponse with an error message and an appropriate HTTP status (401, 400, or 500).
+ */
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {

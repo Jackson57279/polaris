@@ -14,7 +14,9 @@ const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Register app IPC handlers
+ * Register IPC handlers exposing app-level information and controls to renderer processes.
+ *
+ * Installs channels (version, name, packaging state, common paths, lifecycle controls, platform/locale info, resource resolution, AppUserModelId, GPU info, and app metrics) that respond with a standardized `{ success: true, data }` or `{ success: false, error }` payload; errors are logged and returned.
  */
 function registerAppHandlers() {
     // Get app version

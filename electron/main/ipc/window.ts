@@ -9,14 +9,21 @@ import { ipcMain, BrowserWindow } from 'electron';
 import electronLog from 'electron-log';
 
 /**
- * Get the focused window or first available window
+ * Retrieve the currently focused BrowserWindow or the first available window, or `null` if none exist.
+ *
+ * @returns The focused BrowserWindow if one exists; otherwise the first available BrowserWindow; `null` if no windows are available.
  */
 function getWindow(): BrowserWindow | null {
   return BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
 }
 
 /**
- * Register window IPC handlers
+ * Register IPC handlers under the `window:` namespace to control and query the application's BrowserWindow.
+ *
+ * Registers handlers for common window operations (minimize, maximize/unmaximize, close, toggle fullscreen,
+ * focus/visibility, get/set bounds, get state, and set title). Each handler returns a standardized response
+ * object with the shape `{ success: boolean, data?: any, error?: string }`. On failure handlers log the error
+ * and return `{ success: false, error: <message> }`.
  */
 export function registerWindowHandlers(): void {
   // Minimize window

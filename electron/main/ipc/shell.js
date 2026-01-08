@@ -13,7 +13,13 @@ exports.registerShellHandlers = registerShellHandlers;
 const electron_1 = require("electron");
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Register shell IPC handlers
+ * Register IPC handlers on ipcMain for shell-related operations.
+ *
+ * Registers handlers for: `shell:openExternal`, `shell:openPath`,
+ * `shell:showItemInFolder`, `shell:trashItem`, and `shell:beep`.
+ * Each handler performs the corresponding Electron shell action and
+ * returns a standardized result object: `{ success: true }` on success
+ * or `{ success: false, error: string }` on failure.
  */
 function registerShellHandlers() {
     // Open external URL in default browser

@@ -30,6 +30,13 @@ interface DownloadProgress {
 
 type UpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
 
+/**
+ * Displays an in-app update notification UI in Electron that shows availability, download progress, and installation actions.
+ *
+ * Subscribes to the Electron updater events on mount, triggers an initial check for updates, and provides actions to download, install, retry, or dismiss the notification. Renders nothing outside of an Electron environment or when dismissed/idle.
+ *
+ * @returns A React element rendering the update notification card when running in Electron and an update is relevant, or `null` otherwise.
+ */
 export function UpdateNotification() {
   const [state, setState] = useState<UpdateState>('idle');
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -201,7 +208,10 @@ export function UpdateNotification() {
 }
 
 /**
- * Format bytes to human readable string
+ * Convert a byte count into a human-readable string with one decimal precision and unit suffix.
+ *
+ * @param bytes - The number of bytes to format
+ * @returns A string like `"<value> <unit>"` where `unit` is one of `B`, `KB`, `MB`, or `GB` and `value` is formatted to one decimal place (e.g., `1.2 MB`). For an input of `0`, returns `"0 B"`.
  */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';

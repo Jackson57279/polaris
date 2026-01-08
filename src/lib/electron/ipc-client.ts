@@ -8,15 +8,19 @@
 import { isElectron } from './environment';
 
 /**
- * Check if Electron IPC is available
+ * Determine whether the Electron IPC API is available.
+ *
+ * @returns `true` if running in Electron and `window.electron` is present, `false` otherwise.
  */
 export function isIpcAvailable(): boolean {
   return isElectron() && typeof window !== 'undefined' && window.electron !== undefined;
 }
 
 /**
- * Get the Electron API
- * @throws Error if not running in Electron
+ * Retrieve the Electron API object exposed on `window.electron`.
+ *
+ * @returns The Electron API object available on `window.electron`
+ * @throws Error if the Electron API is not available
  */
 export function getElectronApi() {
   if (!isIpcAvailable()) {
@@ -26,8 +30,10 @@ export function getElectronApi() {
 }
 
 /**
- * Safe IPC invoke wrapper
- * Returns null if Electron is not available
+ * Invokes an IPC call and returns its `data` payload, or `null` when IPC is unavailable or the call fails.
+ *
+ * @param fn - A function that performs the IPC call and resolves to an object with `success`, optional `data`, and optional `error` fields.
+ * @returns `T` containing the successful call's `data` field, or `null` if IPC is unavailable, the call reported failure, or an error occurred during invocation.
  */
 export async function safeInvoke<T>(
   fn: () => Promise<{ success: boolean; data?: T; error?: string }>

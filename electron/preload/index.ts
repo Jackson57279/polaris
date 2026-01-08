@@ -12,14 +12,21 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI } from './types';
 
 /**
- * Create type-safe IPC invoke wrapper
+ * Create a typed IPC invoke handler bound to a specific channel.
+ *
+ * @param channel - The IPC channel name to invoke
+ * @returns A function that invokes the specified channel with given arguments and returns a value of type `T`
  */
 function createInvokeHandler<T>(channel: string) {
   return (...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args);
 }
 
 /**
- * Create event listener wrapper
+ * Creates a factory for registering IPC event listeners on a specific channel.
+ *
+ * @typeParam T - The payload type delivered to the callback when the event fires.
+ * @param channel - The IPC channel name to listen on.
+ * @returns A function that accepts a callback invoked with the channel payload and returns an unsubscribe function that removes the listener.
  */
 function createEventListener<T = unknown>(channel: string) {
   return (callback: (data: T) => void) => {

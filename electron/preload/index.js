@@ -11,13 +11,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 /**
- * Create type-safe IPC invoke wrapper
+ * Create an IPC invoke handler bound to the given channel.
+ *
+ * @param {string} channel - The IPC channel name to invoke.
+ * @returns {(...args: any[]) => Promise<any>} A function that invokes the specified IPC channel with the provided arguments and returns the channel response.
  */
 function createInvokeHandler(channel) {
     return (...args) => electron_1.ipcRenderer.invoke(channel, ...args);
 }
 /**
- * Create event listener wrapper
+ * Create a factory for subscribing to a specific IPC channel and receiving its payloads.
+ * @param {string} channel - The IPC channel name to listen for.
+ * @returns {function(function): function} A function that accepts a callback to receive the event data and returns an unsubscribe function. The callback is invoked with the channel's payload. 
  */
 function createEventListener(channel) {
     return (callback) => {

@@ -14,9 +14,10 @@ import { registerShellHandlers } from './shell';
 import electronLog from 'electron-log';
 
 /**
- * Register all IPC handlers
+ * Register IPC handlers for all application domains.
  *
- * This should be called once during app initialization
+ * Registers handlers for file system, dialog, window, notification, app, and shell functionality.
+ * Should be called once during application initialization.
  */
 export function registerAllIpcHandlers(): void {
   electronLog.info('Registering IPC handlers...');

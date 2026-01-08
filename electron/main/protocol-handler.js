@@ -17,13 +17,9 @@ exports.createProtocolUrl = createProtocolUrl;
 const electron_1 = require("electron");
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Parse a polaris:// URL into an action
- *
- * Supported formats:
- * - polaris://open?project=<projectId>
- * - polaris://import?github=<owner/repo>
- * - polaris://new
- * - polaris://auth/callback?token=<token>
+ * Parse a polaris:// deep link into an action and its query parameters.
+ * @param {string} url - The polaris:// URL to parse.
+ * @returns {{ action: string, params: Record<string, string> } | null} An object where `action` is the hostname plus pathname (e.g., "auth/callback") and `params` maps query parameter names to values; `null` if the URL is invalid or not using the `polaris:` scheme.
  */
 function parseProtocolUrl(url) {
     try {
@@ -46,7 +42,18 @@ function parseProtocolUrl(url) {
     }
 }
 /**
- * Handle a protocol action
+ * Execute UI actions for a parsed polaris protocol action and ensure the main window is focused.
+ * 
+ * Dispatches renderer IPC events based on `protocolAction.action`:
+ * - `open`: sends `protocol:openProject` with `params.project` when present.
+ * - `import`: sends `protocol:importGitHub` with `params.github` when present.
+ * - `new`: sends `protocol:newProject`.
+ * - `auth/callback`: sends `protocol:authCallback` with `params.token` when present.
+ * Unknown actions send `protocol:unknown` with the `{ action, params }` payload.
+ * After dispatch, restores the window if minimized and focuses it.
+ * 
+ * @param {import('electron').BrowserWindow} mainWindow - The main application window used to send IPC messages and control focus.
+ * @param {{ action: string, params: Record<string, string> }} protocolAction - Parsed protocol action containing an `action` string and a map of `params`.
  */
 function handleProtocolAction(mainWindow, protocolAction) {
     const { action, params } = protocolAction;
@@ -81,9 +88,13 @@ function handleProtocolAction(mainWindow, protocolAction) {
     mainWindow.focus();
 }
 /**
- * Register the protocol handler
+ * Register the application as the default handler for the polaris:// deep-link protocol.
  *
- * This should be called before app.ready
+ * On macOS this ensures the app is set as the default protocol client if it is not already.
+ * On Windows and Linux, in development (when running as the defaultApp) it registers using
+ * the current executable and script argument; in production it registers normally.
+ *
+ * Must be called before app.ready.
  */
 function registerProtocolHandler() {
     // On macOS, we need to check if we're the default handler
@@ -112,10 +123,9 @@ function registerProtocolHandler() {
     }
 }
 /**
- * Handle protocol URLs on Windows (via command line arguments)
- *
- * On Windows, the protocol URL is passed as a command line argument
- * when a second instance is launched
+ * Extracts a polaris:// URL from an array of command-line arguments.
+ * @param {string[]} args - Command-line arguments to scan.
+ * @returns {string|null} The first argument that starts with `polaris://`, or `null` if none is found.
  */
 function getProtocolUrlFromArgs(args) {
     // Look for polaris:// in the arguments
@@ -127,7 +137,10 @@ function getProtocolUrlFromArgs(args) {
     return null;
 }
 /**
- * Create a polaris:// URL for a specific action
+ * Build a polaris:// deep link for the given action and optional query parameters.
+ * @param {string} action - The action path and/or host (e.g., "open", "auth/callback").
+ * @param {Record<string, string|number|boolean>|null} [params] - Optional key/value pairs to include as URL query parameters; values will be converted to strings.
+ * @returns {string} The resulting polaris:// URL including encoded query parameters when provided.
  */
 function createProtocolUrl(action, params) {
     let url = `polaris://${action}`;

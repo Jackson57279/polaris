@@ -9,7 +9,17 @@ import { ipcMain, shell } from 'electron';
 import electronLog from 'electron-log';
 
 /**
- * Register shell IPC handlers
+ * Register IPC handlers that expose shell operations to renderer processes.
+ *
+ * Sets up handlers under the `shell:` namespace which perform common system-level
+ * actions and return a `{ success: boolean, error?: string }` payload.
+ *
+ * Handlers:
+ * - `shell:openExternal` — open an external URL (allows `http:`, `https:`, `mailto:`; rejects other protocols)
+ * - `shell:openPath` — open a file path with the system default application
+ * - `shell:showItemInFolder` — reveal an item in the system file manager
+ * - `shell:trashItem` — move an item to the trash
+ * - `shell:beep` — emit a system beep sound
  */
 export function registerShellHandlers(): void {
   // Open external URL in default browser

@@ -158,7 +158,12 @@ class AutoUpdaterManager {
 }
 exports.AutoUpdaterManager = AutoUpdaterManager;
 /**
- * Register IPC handlers for auto-updater
+ * Register IPC handlers that expose auto-update operations to renderer processes.
+ * 
+ * Registers handlers for 'updater:checkForUpdates', 'updater:downloadUpdate',
+ * 'updater:installUpdate', and 'updater:getCurrentVersion' and forwards calls to the provided updater manager.
+ * 
+ * @param {Object} updaterManager - Instance that performs update operations (e.g., AutoUpdaterManager); used to check, download, install updates, and obtain current version.
  */
 function registerUpdaterHandlers(updaterManager) {
     // Check for updates

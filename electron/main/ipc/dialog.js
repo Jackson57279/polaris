@@ -13,13 +13,26 @@ exports.registerDialogHandlers = registerDialogHandlers;
 const electron_1 = require("electron");
 const electron_log_1 = __importDefault(require("electron-log"));
 /**
- * Get the focused window for dialog parent
+ * Retrieve the BrowserWindow to use as a dialog parent.
+ *
+ * Falls back to the first available BrowserWindow when no window is focused, and returns
+ * `undefined` if there are no open windows.
+ * @returns {import('electron').BrowserWindow|undefined} The focused BrowserWindow, the first available BrowserWindow, or `undefined`.
  */
 function getFocusedWindow() {
     return electron_1.BrowserWindow.getFocusedWindow() || electron_1.BrowserWindow.getAllWindows()[0] || undefined;
 }
 /**
- * Register dialog IPC handlers
+ * Register IPC handlers that expose native Electron dialogs to renderer processes.
+ *
+ * Registers handlers for dialog actions including:
+ * `dialog:showOpenDialog`, `dialog:showSaveDialog`, `dialog:showMessageBox`,
+ * `dialog:showErrorBox`, `dialog:openFile`, `dialog:openFolder`, `dialog:saveFile`,
+ * and `dialog:confirm`.
+ *
+ * Each handler uses the currently focused BrowserWindow as the parent when available,
+ * returns a standardized `{ success: true, data: ... }` shape on success, and on error
+ * logs the failure and returns `{ success: false, error: <message> }`.
  */
 function registerDialogHandlers() {
     // Show open dialog (file/folder picker)

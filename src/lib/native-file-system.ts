@@ -262,7 +262,21 @@ export class NativeFileSystemManager {
   }
 }
 
-// React hook for Native File System
+/**
+ * React hook exposing Native File System capabilities and the currently selected directory handle.
+ *
+ * @returns An object with the following properties:
+ * - `isSupported` - `true` when the browser supports the Native File System API (`showDirectoryPicker`), `false` otherwise.
+ * - `directoryHandle` - the currently selected `FileSystemDirectoryHandle` or `null` if none selected.
+ * - `requestDirectoryAccess()` - requests directory access, stores and returns the obtained `FileSystemDirectoryHandle`.
+ * - `openFilePicker(options)` - opens a file picker (or a fallback picker) and returns selected `File` objects.
+ * - `saveFile(dir, name, content)` - saves `content` to `name` inside `dir` and returns the created file handle.
+ * - `readDirectory(dir)` - reads `dir` and returns an array of file/directory entries.
+ * - `createDirectory(parent, name)` - creates (or gets) a subdirectory under `parent` and returns its handle.
+ * - `deleteEntry(dir, name)` - deletes the named entry (file or directory) inside `dir`.
+ * - `importProject()` - requests directory access and returns `{ directoryHandle, structure }` describing the directory.
+ * - `exportProject(dir, name)` - exports the project into a timestamped subdirectory under `dir`.
+ */
 export function useNativeFileSystem() {
   const [isSupported, setIsSupported] = useState(false);
   const [directoryHandle, setDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);

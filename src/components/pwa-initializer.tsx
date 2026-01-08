@@ -3,6 +3,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';
 
+/**
+ * Initializes client-side PWA behaviors and coordinates related UI hooks.
+ *
+ * Applies the appropriate theme-color meta, registers a service worker on window load when supported, adapts CSS for the Window Controls Overlay title bar, tracks online/offline state and network quality, and wires PWA lifecycle events (`beforeinstallprompt` / `appinstalled`). Emits custom events (`pwa:installavailable`, `pwa:installed`, `pwa:connectionchange`, `pwa:connectionquality`) and updates document attributes/variables to reflect connection and titlebar state. Cleans up all registered event listeners on unmount.
+ */
 export function PWAInitializer() {
   const { theme } = useTheme();
   const loadHandlerRef = useRef<() => void>(() => {});
@@ -114,7 +119,17 @@ export function PWAInitializer() {
   return null;
 }
 
-// Hook to access PWA state
+/**
+ * Exposes reactive Progressive Web App state and an action to trigger installation.
+ *
+ * @returns An object with:
+ * - `installPrompt` — the current deferred install prompt event or `null`.
+ * - `isInstalled` — `true` when the app is detected as installed, `false` otherwise.
+ * - `isOnline` — current online status (`true` for online, `false` for offline).
+ * - `connectionQuality` — current network effective type (e.g., `'4g'`, `'3g'`, `'slow-2g'`, or `'unknown'`).
+ * - `triggerInstall` — async function that, when an install prompt is available, shows it and resolves to `true` if the user accepted the installation, `false` otherwise.
+ * - `canInstall` — `true` if an install prompt is available and the app is not already installed, `false` otherwise.
+ */
 export function usePWAState() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);

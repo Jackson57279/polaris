@@ -28,7 +28,12 @@ const FORBIDDEN_PATHS = [
 ];
 
 /**
- * Check if a path is safe to access
+ * Validates that a filesystem path is allowed for access.
+ *
+ * Ensures the provided path does not escape the current working directory via directory traversal and does not start with any configured forbidden path (comparison is case-insensitive).
+ *
+ * @param filePath - The filesystem path to validate.
+ * @returns `true` if the path is considered safe to access, `false` otherwise.
  */
 function isPathSafe(filePath: string): boolean {
   const resolved = path.resolve(filePath);
@@ -53,7 +58,9 @@ function isPathSafe(filePath: string): boolean {
 }
 
 /**
- * Register file system IPC handlers
+ * Register IPC handlers under the `fs:*` namespace to expose controlled native filesystem operations to renderer processes.
+ *
+ * Handlers perform path safety checks, provide read/write/copy/rename/delete/stat/listing operations, and manage directory watchers that emit `fs:*` events back to renderers.
  */
 export function registerFileSystemHandlers(): void {
   // Read file
@@ -359,8 +366,9 @@ export function registerFileSystemHandlers(): void {
 }
 
 /**
- * Clean up all file watchers
- * Called when the app is closing
+ * Closes and removes all active file system watchers.
+ *
+ * Ensures each watcher is closed before clearing the internal registry.
  */
 export async function cleanupFileWatchers(): Promise<void> {
   electronLog.info('Cleaning up file watchers...');

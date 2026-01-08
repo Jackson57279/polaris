@@ -58,6 +58,15 @@ const plans: PricingPlan[] = [
   },
 ];
 
+/**
+ * Renders a responsive grid of subscription pricing plans and manages checkout initiation.
+ *
+ * Displays Free, Pro Monthly, and Pro Yearly plan cards with price, interval, features,
+ * current-plan indication, trial notices, and action buttons. For paid plans, user interactions
+ * will initiate the checkout flow and navigate to the checkout page.
+ *
+ * @returns The rendered pricing plans UI as a JSX element.
+ */
 export function PricingPlans() {
   const { subscription, isLoading } = useSubscription();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);

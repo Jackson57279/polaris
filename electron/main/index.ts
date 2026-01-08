@@ -59,7 +59,11 @@ if (!gotTheLock) {
 }
 
 /**
- * Handle protocol URLs (polaris://)
+ * Forwards a received polaris:// URL to the renderer by sending a `protocol-url` IPC message to the main window.
+ *
+ * If no main window is available, the URL is not forwarded.
+ *
+ * @param url - The polaris protocol URL to handle (e.g., `polaris://...`)
  */
 function handleProtocolUrl(url: string): void {
   electronLog.info('Handling protocol URL:', url);
@@ -70,7 +74,11 @@ function handleProtocolUrl(url: string): void {
 }
 
 /**
- * Register the polaris:// protocol
+ * Register the application as the system handler for the `polaris://` protocol.
+ *
+ * In packaged runs this sets the app as the default protocol client. In development
+ * (when `process.defaultApp` is true) it registers using the current Node/Electron
+ * executable and the app's script path so protocol links launch the running app.
  */
 function registerProtocol(): void {
   if (process.defaultApp) {
@@ -85,7 +93,14 @@ function registerProtocol(): void {
 }
 
 /**
- * Initialize the application
+ * Initialize and start the application's core services and main window.
+ *
+ * Performs app startup tasks such as registering the custom protocol, starting
+ * the local web server, creating the main BrowserWindow, registering IPC
+ * handlers, setting up the application menu, and initializing the auto-updater
+ * when the app is packaged.
+ *
+ * @returns Nothing.
  */
 async function initialize(): Promise<void> {
   electronLog.info('Initializing Polaris IDE...');
