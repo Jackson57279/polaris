@@ -1,15 +1,20 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';
 
 export function PWAInitializer() {
   const { theme } = useTheme();
+  const loadHandlerRef = useRef<() => void>(() => {});
+  const beforeInstallPromptHandlerRef = useRef<(e: Event) => void>((e) => {
+    e.preventDefault();
+  });
+  const appInstalledHandlerRef = useRef<() => void>(() => {});
+  const connectionChangeHandlerRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    // Register service worker
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      loadHandlerRef.current = () => {
         navigator.serviceWorker.register('/sw.js').then(
           (registration) => {
             console.log('SW registered:', registration.scope);
@@ -18,10 +23,10 @@ export function PWAInitializer() {
             console.log('SW registration failed:', registrationError);
           }
         );
-      });
+      };
+      window.addEventListener('load', loadHandlerRef.current);
     }
 
-    // Handle theme changes for PWA
     const handleThemeChange = () => {
       const themeColor = theme === 'dark' ? '#0b1220' : '#ffffff';
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -32,7 +37,6 @@ export function PWAInitializer() {
 
     handleThemeChange();
 
-    // Handle window controls overlay (Windows 11+)
     if ('windowControlsOverlay' in navigator) {
       const overlay = (navigator as any).windowControlsOverlay;
       
@@ -50,36 +54,33 @@ export function PWAInitializer() {
       }
     }
 
-    // Handle beforeinstallprompt event
     let deferredPrompt: any = null;
-    window.addEventListener('beforeinstallprompt', (e: Event) => {
+    beforeInstallPromptHandlerRef.current = (e: Event) => {
       e.preventDefault();
       deferredPrompt = e;
       
-      // Dispatch custom event for UI components
       window.dispatchEvent(new CustomEvent('pwa:installavailable', { detail: deferredPrompt }));
-    });
+    };
+    window.addEventListener('beforeinstallprompt', beforeInstallPromptHandlerRef.current);
 
-    // Handle app installed event
-    window.addEventListener('appinstalled', () => {
+    appInstalledHandlerRef.current = () => {
       window.dispatchEvent(new CustomEvent('pwa:installed'));
       
-      // Clear the deferred prompt
       deferredPrompt = null;
-    });
+    };
+    window.addEventListener('appinstalled', appInstalledHandlerRef.current);
 
-    // Connection status monitoring
     const updateOnlineStatus = () => {
       const status = navigator.onLine ? 'online' : 'offline';
       document.body.setAttribute('data-connection', status);
       window.dispatchEvent(new CustomEvent('pwa:connectionchange', { detail: { online: navigator.onLine } }));
     };
+    connectionChangeHandlerRef.current = updateOnlineStatus;
 
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
 
-    // Performance optimization hints
     if ('connection' in navigator) {
       const connection = (navigator as any).connection;
       
@@ -90,14 +91,21 @@ export function PWAInitializer() {
       };
 
       connection.addEventListener('change', updateConnectionQuality);
-      updateConnectionQuality();
+
+      return () => {
+        window.removeEventListener('load', loadHandlerRef.current);
+        window.removeEventListener('beforeinstallprompt', beforeInstallPromptHandlerRef.current);
+        window.removeEventListener('appinstalled', appInstalledHandlerRef.current);
+        window.removeEventListener('online', updateOnlineStatus);
+        window.removeEventListener('offline', updateOnlineStatus);
+        connection.removeEventListener('change', updateConnectionQuality);
+      };
     }
 
-    // Cleanup
     return () => {
-      window.removeEventListener('load', () => {});
-      window.removeEventListener('beforeinstallprompt', () => {});
-      window.removeEventListener('appinstalled', () => {});
+      window.removeEventListener('load', loadHandlerRef.current);
+      window.removeEventListener('beforeinstallprompt', beforeInstallPromptHandlerRef.current);
+      window.removeEventListener('appinstalled', appInstalledHandlerRef.current);
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
     };

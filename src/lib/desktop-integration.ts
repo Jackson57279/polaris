@@ -3,10 +3,12 @@
 export class DesktopIntegrationManager {
   private static instance: DesktopIntegrationManager;
   private notificationPermission: NotificationPermission = 'default';
+  private isWorkspaceActive: boolean = true;
 
   private constructor() {
     this.initNotifications();
     this.initKeyboardShortcuts();
+    this.initFocusDetection();
   }
 
   static getInstance(): DesktopIntegrationManager {
@@ -16,17 +18,31 @@ export class DesktopIntegrationManager {
     return DesktopIntegrationManager.instance;
   }
 
-  // Notifications
-  private async initNotifications() {
+  isWorkspaceFocused(): boolean {
+    return this.isWorkspaceActive;
+  }
+
+  private initFocusDetection() {
+    window.addEventListener('focus', () => {
+      this.isWorkspaceActive = true;
+    });
+    window.addEventListener('blur', () => {
+      this.isWorkspaceActive = false;
+    });
+  }
+
+  private initNotifications() {
     if ('Notification' in window) {
       this.notificationPermission = Notification.permission;
-      
-      if (this.notificationPermission === 'default') {
-        try {
-          this.notificationPermission = await Notification.requestPermission();
-        } catch (error) {
-          console.error('Notification permission denied:', error);
-        }
+    }
+  }
+
+  async requestNotificationPermission(): Promise<void> {
+    if ('Notification' in window && this.notificationPermission === 'default') {
+      try {
+        this.notificationPermission = await Notification.requestPermission();
+      } catch (error) {
+        console.error('Notification permission denied:', error);
       }
     }
   }
@@ -49,10 +65,14 @@ export class DesktopIntegrationManager {
   // Keyboard shortcuts
   private initKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
-      // Global shortcuts
+      if (!this.isWorkspaceFocused()) {
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
           case 'n':
+            e.preventDefault();
             if (e.shiftKey) {
               this.createProject();
             } else {
@@ -60,13 +80,16 @@ export class DesktopIntegrationManager {
             }
             break;
           case 's':
+            e.preventDefault();
             this.saveProject();
             break;
           case 'o':
+            e.preventDefault();
             this.openProject();
             break;
           case 'p':
             if (e.shiftKey) {
+              e.preventDefault();
               this.openPreview();
             }
             break;

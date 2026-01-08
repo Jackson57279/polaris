@@ -231,21 +231,27 @@ export class NativeFileSystemManager {
     return new Promise((resolve, reject) => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.multiple = options.multiple ?? true;
+      input.multiple = options.multiple ?? false;
       
-      if (options.accept) {
+      if (options.types && options.types.length > 0) {
+        const acceptValues = options.types
+          .flatMap((type: any) => Object.values(type.accept).flat());
+        input.accept = acceptValues.join(',');
+      } else if (options.accept) {
         input.accept = Object.values(options.accept).flat().join(',');
       }
 
-      input.onchange = (e) => {
-        const files = (e.target as HTMLInputElement).files;
-        if (files) {
-          resolve(Array.from(files));
-        } else {
+      const changeHandler = (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        if (!target.files || target.files.length === 0) {
           reject(new Error('No files selected'));
+        } else {
+          resolve(Array.from(target.files));
         }
+        input.removeEventListener('change', changeHandler);
       };
 
+      input.addEventListener('change', changeHandler);
       input.click();
     });
   }

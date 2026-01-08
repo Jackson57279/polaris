@@ -283,7 +283,12 @@ export class OfflineAIManager {
 
   private getCacheSize(): number {
     try {
-      return JSON.stringify(this.cache).length;
+      const cacheData = {
+        suggestions: Array.from(this.cache.suggestions.entries()),
+        context: Array.from(this.cache.context.entries()),
+        timestamp: this.cache.timestamp
+      };
+      return JSON.stringify(cacheData).length;
     } catch {
       return 0;
     }

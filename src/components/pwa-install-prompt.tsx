@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface PWAInstallPromptProps {
@@ -11,9 +11,13 @@ export function PWAInstallPrompt({ className }: PWAInstallPromptProps) {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+  const beforeInstallPromptHandlerRef = useRef<(e: Event) => void>((e) => {
+    e.preventDefault();
+  });
+  const appInstalledHandlerRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    // Check if already installed
     const checkInstalled = async () => {
       if ((window as any).navigator.getInstalledRelatedApps) {
         const apps = await (window as any).navigator.getInstalledRelatedApps();
@@ -22,31 +26,39 @@ export function PWAInstallPrompt({ className }: PWAInstallPromptProps) {
     };
     checkInstalled();
 
-    // Listen for install prompt
-    window.addEventListener('beforeinstallprompt', (e: Event) => {
+    beforeInstallPromptHandlerRef.current = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
       
-      // Show prompt after a delay
-      setTimeout(() => {
-        if (!isInstalled) {
-          setIsVisible(true);
-        }
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = window.setTimeout(() => {
+        setIsVisible((prevVisible) => !prevVisible && !isInstalled);
       }, 5000);
-    });
+    };
+    window.addEventListener('beforeinstallprompt', beforeInstallPromptHandlerRef.current);
 
-    // Handle app installed
-    window.addEventListener('appinstalled', () => {
+    appInstalledHandlerRef.current = () => {
       setIsInstalled(true);
       setIsVisible(false);
       setInstallPrompt(null);
-    });
+    };
+    window.addEventListener('appinstalled', appInstalledHandlerRef.current);
 
-    // Check if user dismissed prompt before
     const dismissed = localStorage.getItem('polaris-install-prompt-dismissed');
     if (dismissed) {
       setIsVisible(false);
     }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', beforeInstallPromptHandlerRef.current);
+      window.removeEventListener('appinstalled', appInstalledHandlerRef.current);
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [isInstalled]);
 
   const handleInstall = async () => {
@@ -71,8 +83,10 @@ export function PWAInstallPrompt({ className }: PWAInstallPromptProps) {
 
   const handleRemindLater = () => {
     setIsVisible(false);
-    // Show again in 1 week
-    setTimeout(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = window.setTimeout(() => {
       setIsVisible(true);
     }, 7 * 24 * 60 * 60 * 1000);
   };

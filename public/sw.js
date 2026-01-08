@@ -2,6 +2,19 @@
 const CACHE_NAME = 'polaris-v1.0.0';
 const OFFLINE_URL = '/offline';
 
+// Allowed hostnames for cross-origin caching (strict whitelist)
+const ALLOWED_HOSTNAMES = new Set([
+  'cdn.jsdelivr.net',
+  'unpkg.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+]);
+
+// Allowed origins for caching (includes same-origin)
+const ALLOWED_ORIGINS = new Set([
+  self.location.origin,
+]);
+
 // Resources to cache immediately
 const APP_SHELL = [
   '/',
@@ -28,14 +41,25 @@ const strategies = {
   },
 
   networkFirst: (request) => {
-    return fetch(request).catch(() => {
-      return caches.match(request).then((response) => {
-        if (response) {
-          return response;
+    return fetch(request)
+      .then((response) => {
+        // Cache successful responses for offline access
+        if (response.ok) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseClone);
+          });
         }
-        return caches.match(OFFLINE_URL);
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request).then((response) => {
+          if (response) {
+            return response;
+          }
+          return caches.match(OFFLINE_URL);
+        });
       });
-    });
   },
 
   staleWhileRevalidate: (request) => {
@@ -90,14 +114,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Skip cross-origin requests (except for CDN resources)
+  // Skip cross-origin requests (except for allowed CDN resources with strict hostname check)
   if (url.origin !== location.origin) {
-    if (
-      url.hostname.includes('cdn.jsdelivr.net') ||
-      url.hostname.includes('unpkg.com') ||
-      url.hostname.includes('fonts.googleapis.com') ||
-      url.hostname.includes('fonts.gstatic.com')
-    ) {
+    if (ALLOWED_HOSTNAMES.has(url.hostname)) {
       event.respondWith(strategies.cacheFirst(request));
     }
     return;
@@ -188,6 +207,16 @@ self.addEventListener('notificationclick', (event) => {
 
 // Message handler for communication with main thread
 self.addEventListener('message', (event) => {
+  // Verify sender origin before processing any commands
+  const senderOrigin = event.origin;
+  const trustedOrigin = self.location.origin;
+  
+  // Only accept messages from the same origin
+  if (senderOrigin !== trustedOrigin) {
+    console.warn('Ignoring message from untrusted origin:', senderOrigin);
+    return;
+  }
+
   const { type, payload } = event.data;
 
   switch (type) {
@@ -257,6 +286,15 @@ async function cacheUrls(urls) {
   await Promise.all(
     urls.map(async (url) => {
       try {
+        // Validate URL and check origin before fetching
+        const parsedUrl = new URL(url, self.location.origin);
+        
+        // Only allow same-origin or explicitly whitelisted origins
+        if (!ALLOWED_ORIGINS.has(parsedUrl.origin) && !ALLOWED_HOSTNAMES.has(parsedUrl.hostname)) {
+          console.warn('Skipping untrusted URL:', url);
+          return;
+        }
+        
         const response = await fetch(url);
         if (response.ok) {
           await cache.put(url, response);

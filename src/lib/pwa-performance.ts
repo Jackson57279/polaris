@@ -4,6 +4,7 @@ export class PWAPerformance {
   private static instance: PWAPerformance;
   private static readonly CACHE_KEY = 'polaris-performance-cache';
   private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private perfObservers: PerformanceObserver[] = [];
 
   private constructor() {}
 
@@ -81,7 +82,8 @@ export class PWAPerformance {
 
   // Performance monitoring
   startPerformanceMonitoring() {
-    // Monitor Core Web Vitals
+    this.stopPerformanceMonitoring();
+    
     if ('PerformanceObserver' in window) {
       // LCP
       try {
@@ -92,6 +94,7 @@ export class PWAPerformance {
         });
         
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+        this.perfObservers.push(lcpObserver);
       } catch (e) {
         // LCP not supported
       }
@@ -106,6 +109,7 @@ export class PWAPerformance {
         });
         
         fidObserver.observe({ entryTypes: ['first-input'] });
+        this.perfObservers.push(fidObserver);
       } catch (e) {
         // FID not supported
       }
@@ -124,10 +128,16 @@ export class PWAPerformance {
         });
         
         clsObserver.observe({ entryTypes: ['layout-shift'] });
+        this.perfObservers.push(clsObserver);
       } catch (e) {
         // CLS not supported
       }
     }
+  }
+
+  stopPerformanceMonitoring() {
+    this.perfObservers.forEach((observer) => observer.disconnect());
+    this.perfObservers = [];
   }
 
   // Get current performance metrics
@@ -160,6 +170,7 @@ export const usePWAPerformance = () => {
     optimizeMemoryUsage: () => performanceManager.optimizeMemoryUsage(),
     clearCache: () => performanceManager.clearCache(),
     startPerformanceMonitoring: () => performanceManager.startPerformanceMonitoring(),
+    stopPerformanceMonitoring: () => performanceManager.stopPerformanceMonitoring(),
     getPerformanceMetrics: () => performanceManager.getPerformanceMetrics(),
   };
 };
