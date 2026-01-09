@@ -1,7 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import log from 'electron-log';
-import getPort from 'get-port';
 import http from 'http';
 
 export class ServerManager {
@@ -26,8 +25,11 @@ export class ServerManager {
         return this.port;
       }
 
-      // Get available port for production
-      this.port = await getPort({ port: getPort.makeRange(3000, 3100) });
+      // Get available port for production (try ports 3000-3100)
+      // Use dynamic import for ESM-only get-port package
+      const { default: getPort } = await import('get-port');
+      const portRange = Array.from({ length: 101 }, (_, i) => 3000 + i);
+      this.port = await getPort({ port: portRange });
       log.info(`Allocated port: ${this.port}`);
 
       // In production, start the standalone Next.js server

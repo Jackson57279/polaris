@@ -15,7 +15,7 @@
     "test:e2e:ui": "playwright test --ui",
     "electron:dev": "concurrently \"npm run electron:dev:next\" \"npm run electron:dev:electron\"",
     "electron:dev:next": "cross-env NODE_ENV=development next dev",
-    "electron:dev:electron": "wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .",
+    "electron:dev:electron": "wait-on http://localhost:3000 && npm run electron:compile && cross-env NODE_ENV=development electron .",
     "electron:build": "npm run electron:build:next && npm run electron:build:app",
     "electron:build:next": "cross-env BUILD_ELECTRON=true next build",
     "electron:build:app": "npm run electron:compile && electron-builder",
@@ -24,7 +24,7 @@
     "electron:build:linux": "npm run electron:build:next && npm run electron:compile && electron-builder --linux",
     "electron:pack": "npm run electron:build:next && npm run electron:compile && electron-builder --dir"
   },
-  "main": "electron/main/index.js",
+  "main": "dist-electron/main/index.js",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.1",
     "@ai-sdk/google": "^3.0.1",
