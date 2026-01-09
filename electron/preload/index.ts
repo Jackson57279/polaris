@@ -54,6 +54,9 @@ const electronAPI = {
       ipcRenderer.on('menu:new-project', subscription);
       return () => ipcRenderer.removeListener('menu:new-project', subscription);
     }
+  },
+  external: {
+    openUrl: (url: string) => ipcRenderer.invoke('external:openUrl', url)
   }
 };
 

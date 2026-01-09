@@ -45,6 +45,7 @@ class ServerManager {
     constructor(isDev) {
         this.serverProcess = null;
         this.port = 3000;
+        this.isStopping = false;
         this.isDev = isDev;
     }
     async start() {
@@ -100,27 +101,31 @@ class ServerManager {
         }
     }
     async stop() {
+        if (this.isStopping) {
+            return;
+        }
         if (this.serverProcess) {
             // Check if process already exited
             if (this.serverProcess.exitCode !== null || this.serverProcess.killed) {
-                electron_log_1.default.info('Server already stopped');
                 return;
             }
+            this.isStopping = true;
             return new Promise((resolve) => {
                 if (this.serverProcess) {
-                    // Set a timeout to force resolve after 5 seconds
+                    // Set a timeout to force resolve after 3 seconds
                     const timeout = setTimeout(() => {
-                        electron_log_1.default.warn('Server stop timeout - forcing resolve');
+                        this.isStopping = false;
                         resolve();
-                    }, 5000);
+                    }, 3000);
                     this.serverProcess.on('exit', () => {
                         clearTimeout(timeout);
-                        electron_log_1.default.info('Server stopped');
+                        this.isStopping = false;
                         resolve();
                     });
                     this.serverProcess.kill();
                 }
                 else {
+                    this.isStopping = false;
                     resolve();
                 }
             });

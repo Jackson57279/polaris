@@ -12,6 +12,7 @@ log.initialize();
 const isDev = process.env.NODE_ENV === 'development';
 let windowManager: WindowManager | null = null;
 let serverManager: ServerManager | null = null;
+let isQuitting = false;
 
 async function createApplication() {
   try {
@@ -110,16 +111,24 @@ if (!gotTheLock) {
   });
 
   app.on('before-quit', (event) => {
-    log.info('Application shutting down...');
+    if (isQuitting) {
+      return;
+    }
+
     if (serverManager) {
       event.preventDefault();
+      isQuitting = true;
+      log.info('Application shutting down...');
+
       serverManager.stop()
         .then(() => {
           log.info('Server stopped successfully');
+          serverManager = null;
           app.quit();
         })
         .catch((error) => {
           log.error('Error stopping server:', error);
+          serverManager = null;
           app.quit();
         });
     }

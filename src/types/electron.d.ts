@@ -70,6 +70,9 @@ export interface ElectronAPI {
   notification: {
     show: (options: { title: string; body: string }) => Promise<FileSystemResult>;
   };
+  external: {
+    openUrl: (url: string) => Promise<FileSystemResult>;
+  };
 }
 
 declare global {

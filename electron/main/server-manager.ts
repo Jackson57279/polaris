@@ -7,6 +7,7 @@ export class ServerManager {
   private serverProcess: ChildProcess | null = null;
   private port: number = 3000;
   private isDev: boolean;
+  private isStopping: boolean = false;
 
   constructor(isDev: boolean) {
     this.isDev = isDev;
@@ -75,29 +76,35 @@ export class ServerManager {
   }
 
   async stop(): Promise<void> {
+    if (this.isStopping) {
+      return;
+    }
+
     if (this.serverProcess) {
       // Check if process already exited
       if (this.serverProcess.exitCode !== null || this.serverProcess.killed) {
-        log.info('Server already stopped');
         return;
       }
 
+      this.isStopping = true;
+
       return new Promise((resolve) => {
         if (this.serverProcess) {
-          // Set a timeout to force resolve after 5 seconds
+          // Set a timeout to force resolve after 3 seconds
           const timeout = setTimeout(() => {
-            log.warn('Server stop timeout - forcing resolve');
+            this.isStopping = false;
             resolve();
-          }, 5000);
+          }, 3000);
 
           this.serverProcess.on('exit', () => {
             clearTimeout(timeout);
-            log.info('Server stopped');
+            this.isStopping = false;
             resolve();
           });
-          
+
           this.serverProcess.kill();
         } else {
+          this.isStopping = false;
           resolve();
         }
       });

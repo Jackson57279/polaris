@@ -33,6 +33,15 @@ class WindowManager {
                 devTools: this.isDev
             }
         });
+        // Show window when ready (attach before loading URL)
+        this.mainWindow.once('ready-to-show', () => {
+            if (this.mainWindow) {
+                this.mainWindow.show();
+                if (this.isDev) {
+                    this.mainWindow.webContents.openDevTools();
+                }
+            }
+        });
         // Load the app
         const url = `http://localhost:${this.port}`;
         electron_log_1.default.info(`Loading URL: ${url}`);
@@ -43,25 +52,73 @@ class WindowManager {
             electron_log_1.default.error('Failed to load URL:', error);
             throw error;
         }
-        // Show window when ready
-        this.mainWindow.once('ready-to-show', () => {
-            if (this.mainWindow) {
-                this.mainWindow.show();
-                if (this.isDev) {
-                    this.mainWindow.webContents.openDevTools();
+        // Allow navigation to Clerk auth URLs, prevent others
+        this.mainWindow.webContents.on('will-navigate', (event, url) => {
+            const parsedUrl = new URL(url);
+            const isLocalhost = parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1';
+            const isClerkAuth = parsedUrl.hostname.includes('accounts.dev') || parsedUrl.hostname.includes('clerk.dev');
+            // OAuth provider domains that should open in system browser
+            const isOAuthProvider = parsedUrl.hostname === 'github.com' ||
+                parsedUrl.hostname.endsWith('.github.com') ||
+                parsedUrl.hostname === 'accounts.google.com' ||
+                parsedUrl.hostname.endsWith('.google.com');
+            if (!isLocalhost && !isClerkAuth) {
+                event.preventDefault();
+                if (isOAuthProvider) {
+                    electron_log_1.default.info('Opening OAuth URL in system browser:', url);
+                    electron_1.shell.openExternal(url);
+                }
+                else {
+                    electron_log_1.default.warn('Prevented navigation to external URL:', url);
                 }
             }
         });
-        // Prevent navigation to external URLs
-        this.mainWindow.webContents.on('will-navigate', (event, url) => {
+        // Allow Clerk popups, prevent other new windows
+        this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             const parsedUrl = new URL(url);
-            if (parsedUrl.hostname !== 'localhost' && parsedUrl.hostname !== '127.0.0.1') {
-                event.preventDefault();
-                electron_log_1.default.warn('Prevented navigation to external URL:', url);
+            const isClerkAuth = parsedUrl.hostname.includes('accounts.dev') || parsedUrl.hostname.includes('clerk.dev');
+            // OAuth provider domains that should open in system browser
+            const isOAuthProvider = parsedUrl.hostname === 'github.com' ||
+                parsedUrl.hostname.endsWith('.github.com') ||
+                parsedUrl.hostname === 'accounts.google.com' ||
+                parsedUrl.hostname.endsWith('.google.com');
+            if (isClerkAuth) {
+                // Allow Clerk auth popups and handle OAuth navigation within them
+                const popup = new electron_1.BrowserWindow({
+                    width: 500,
+                    height: 700,
+                    center: true,
+                    modal: true,
+                    parent: this.mainWindow || undefined,
+                    webPreferences: {
+                        contextIsolation: true,
+                        nodeIntegration: false,
+                        sandbox: true
+                    }
+                });
+                // Handle OAuth navigation in popup window
+                popup.webContents.on('will-navigate', (event, navigationUrl) => {
+                    const navParsedUrl = new URL(navigationUrl);
+                    const navIsOAuthProvider = navParsedUrl.hostname === 'github.com' ||
+                        navParsedUrl.hostname.endsWith('.github.com') ||
+                        navParsedUrl.hostname === 'accounts.google.com' ||
+                        navParsedUrl.hostname.endsWith('.google.com');
+                    if (navIsOAuthProvider) {
+                        event.preventDefault();
+                        electron_log_1.default.info('Opening OAuth URL from popup in system browser:', navigationUrl);
+                        electron_1.shell.openExternal(navigationUrl);
+                        popup.close();
+                    }
+                });
+                popup.loadURL(url);
+                return { action: 'deny' }; // We manually created the window
             }
-        });
-        // Prevent new window creation
-        this.mainWindow.webContents.setWindowOpenHandler(() => {
+            if (isOAuthProvider) {
+                // Open OAuth URLs directly in system browser
+                electron_log_1.default.info('Opening OAuth URL in system browser:', url);
+                electron_1.shell.openExternal(url);
+                return { action: 'deny' };
+            }
             return { action: 'deny' };
         });
         this.mainWindow.on('closed', () => {

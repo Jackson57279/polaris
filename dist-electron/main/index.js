@@ -15,6 +15,7 @@ electron_log_1.default.initialize();
 const isDev = process.env.NODE_ENV === 'development';
 let windowManager = null;
 let serverManager = null;
+let isQuitting = false;
 async function createApplication() {
     try {
         electron_log_1.default.info('Starting Polaris IDE application...');
@@ -99,16 +100,22 @@ else {
         }
     });
     electron_1.app.on('before-quit', (event) => {
-        electron_log_1.default.info('Application shutting down...');
+        if (isQuitting) {
+            return;
+        }
         if (serverManager) {
             event.preventDefault();
+            isQuitting = true;
+            electron_log_1.default.info('Application shutting down...');
             serverManager.stop()
                 .then(() => {
                 electron_log_1.default.info('Server stopped successfully');
+                serverManager = null;
                 electron_1.app.quit();
             })
                 .catch((error) => {
                 electron_log_1.default.error('Error stopping server:', error);
+                serverManager = null;
                 electron_1.app.quit();
             });
         }
