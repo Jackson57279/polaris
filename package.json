@@ -75,6 +75,8 @@
     "@replit/codemirror-indentation-markers": "^6.5.3",
     "@replit/codemirror-minimap": "^0.5.2",
     "@sentry/nextjs": "^10.32.1",
+    "@sourcegraph/amp": "^0.0.1768018268-gcd18ba",
+    "@stackframe/stack": "^2.8.56",
     "@webcontainer/api": "^1.6.1",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
@@ -86,7 +88,11 @@
     "cmdk": "^1.1.1",
     "codemirror": "^6.0.2",
     "convex": "^1.31.2",
+    "critters": "^0.0.25",
     "date-fns": "^4.1.0",
+    "electron-log": "^5.2.0",
+    "electron-store": "^10.0.0",
+    "electron-updater": "^6.3.0",
     "embla-carousel-react": "^8.6.0",
     "inngest": "^3.48.1",
     "input-otp": "^1.4.2",
@@ -112,10 +118,7 @@
     "use-stick-to-bottom": "^1.1.1",
     "vaul": "^1.1.2",
     "zod": "^4.2.1",
-    "zustand": "^5.0.9",
-    "electron-log": "^5.2.0",
-    "electron-store": "^10.0.0",
-    "electron-updater": "^6.3.0"
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

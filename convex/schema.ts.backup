@@ -6,8 +6,7 @@ export const TRIAL_DAYS = 7;
 
 export default defineSchema({
   users: defineTable({
-    stackUserId: v.string(), // Stack Auth user ID (migrated from clerkId)
-    clerkId: v.optional(v.string()), // Legacy - for migration period
+    clerkId: v.string(),
     email: v.string(),
     paddleCustomerId: v.optional(v.string()),
     paddleSubscriptionId: v.optional(v.string()),
@@ -34,14 +33,13 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_stack_user", ["stackUserId"])
-    .index("by_clerk", ["clerkId"]) // Keep for migration period
+    .index("by_clerk", ["clerkId"])
     .index("by_paddle_customer", ["paddleCustomerId"])
     .index("by_paddle_subscription", ["paddleSubscriptionId"]),
 
   projects: defineTable({
     name: v.string(),
-    ownerId: v.string(), // Stack Auth user ID (migrated from Clerk)
+    ownerId: v.string(), // Clerk user ID
     userId: v.optional(v.id("users")), // Links to users table for subscription tracking
     updatedAt: v.number(),
     importStatus: v.optional(
