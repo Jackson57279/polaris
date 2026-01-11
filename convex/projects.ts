@@ -9,12 +9,12 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
-    const clerkId = identity.subject;
+    const stackUserId = identity.subject;
 
     // Get user subscription info
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk", (q) => q.eq("clerkId", clerkId))
+      .withIndex("by_stack_user", (q) => q.eq("stackUserId", stackUserId))
       .first();
 
     if (!user) {
@@ -26,7 +26,7 @@ export const create = mutation({
       // Count existing projects
       const existingProjects = await ctx.db
         .query("projects")
-        .withIndex("by_owner", (q) => q.eq("ownerId", clerkId))
+        .withIndex("by_owner", (q) => q.eq("ownerId", stackUserId))
         .collect();
 
       if (existingProjects.length >= user.projectLimit) {
@@ -39,7 +39,7 @@ export const create = mutation({
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
-      ownerId: clerkId,
+      ownerId: stackUserId,
       userId: user._id,
       updatedAt: Date.now(),
     });
