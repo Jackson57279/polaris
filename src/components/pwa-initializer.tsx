@@ -35,14 +35,17 @@ export function PWAInitializer() {
     // Handle window controls overlay (Windows 11+)
     if ('windowControlsOverlay' in navigator) {
       const overlay = (navigator as any).windowControlsOverlay;
-      
-      if (overlay) {
+
+      if (overlay && overlay.visible) {
         const updateTitleBar = () => {
-          const { titlebarAreaRect } = overlay;
-          document.documentElement.style.setProperty(
-            '--titlebar-height',
-            `${titlebarAreaRect.height}px`
-          );
+          const titlebarAreaRect = overlay.titlebarAreaRect;
+          // Check if titlebarAreaRect exists before accessing properties
+          if (titlebarAreaRect && typeof titlebarAreaRect.height === 'number') {
+            document.documentElement.style.setProperty(
+              '--titlebar-height',
+              `${titlebarAreaRect.height}px`
+            );
+          }
         };
 
         overlay.addEventListener('geometrychange', updateTitleBar);

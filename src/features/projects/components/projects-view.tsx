@@ -20,6 +20,8 @@ import { useCreateProject } from "../hooks/use-projects";
 import { ProjectsCommandDialog } from "./projects-command-dialog";
 import { GitHubImportDialog } from "./github-import-dialog";
 import { AIGenerateDialog } from "./ai-generate-dialog";
+import { useUser } from "@stackframe/stack";
+import { UnauthenticatedView } from "@/features/auth/components/unauthenticated-view";
 
 const font = Poppins({
   subsets: ["latin"],
@@ -27,11 +29,16 @@ const font = Poppins({
 })
 
 export const ProjectsView = () => {
+  const user = useUser();
   const createProject = useCreateProject();
 
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+
+  if (!user) {
+    return <UnauthenticatedView />;
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -9,3 +9,9 @@ export const verifyAuth = async (ctx: QueryCtx | MutationCtx) => {
 
   return identity;
 };
+
+// Stack Auth user ID extraction helper
+export const getStackUserId = (identity: any): string => {
+  // Stack Auth stores user ID in the 'sub' field of the JWT
+  return identity.subject || identity.sub;
+};

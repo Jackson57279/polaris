@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Allotment } from "allotment";
 import { FaGithub } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { EditorView } from "@/features/editor/components/editor-view";
@@ -15,6 +16,7 @@ import {
 import { FileExplorer } from "./file-explorer";
 import { GitHubExportDialog } from "./github-export-dialog";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { useUser } from "@stackframe/stack";
 
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 800;
@@ -43,13 +45,20 @@ const Tab = ({
   );
 };
 
-export const ProjectIdView = ({ 
+export const ProjectIdView = ({
   projectId
-}: { 
+}: {
   projectId: Id<"projects">
 }) => {
+  const user = useUser();
+  const router = useRouter();
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  if (!user) {
+    router.push("/handler/sign-in");
+    return null;
+  }
 
   return (
     <>

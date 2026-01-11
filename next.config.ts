@@ -2,9 +2,31 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Conditional standalone output for Electron builds
+  ...(process.env.BUILD_ELECTRON === 'true' && {
+    output: 'standalone',
+  }),
+
   // Enable cross-origin isolation for SharedArrayBuffer support
   // Required for AI SDK streaming and WebContainer API
+  // Skip COOP/COEP headers in Electron (not needed)
   async headers() {
+    // Electron provides SharedArrayBuffer by default, no headers needed
+    if (process.env.IS_ELECTRON === 'true') {
+      return [
+        {
+          // API routes - no caching
+          source: '/api/(.*)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'no-cache, no-store, must-revalidate',
+            },
+          ],
+        },
+      ];
+    }
+
     return [
       {
         source: '/(.*)',
@@ -54,12 +76,14 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // PWA Runtime Configuration
+  // PWA and Electron Runtime Configuration
   env: {
     // Add PWA-specific environment variables
     NEXT_PUBLIC_IS_PWA: 'true',
     NEXT_PUBLIC_SERVICE_WORKER_URL: '/sw.js',
     NEXT_PUBLIC_MANIFEST_URL: '/manifest.json',
+    // Add Electron-specific environment variables
+    NEXT_PUBLIC_IS_ELECTRON: process.env.IS_ELECTRON || 'false',
   },
 
   // Performance optimizations for PWA

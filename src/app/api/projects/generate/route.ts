@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/lib/stack-auth-api";
 import { ConvexHttpClient } from "convex/browser";
 
 import { inngest } from "@/inngest/client";
@@ -12,11 +12,12 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const { userId, getToken } = await auth();
+  const { user, userId, getToken, response } = await requireAuth();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return response;
   }
+
 
   const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const token = await getToken({ template: "convex" });
+  const token = await getToken();
 
   if (!token) {
     return NextResponse.json(

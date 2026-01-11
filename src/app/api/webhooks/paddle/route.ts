@@ -113,14 +113,14 @@ async function handleWebhookEvent(event: PaddleWebhookEvent) {
 async function handleCustomerCreated(data: Record<string, unknown>) {
   const customData = data.customData as Record<string, string> | undefined;
   
-  if (customData?.clerkUserId) {
-    const user = await convex.query(api.users.getUserByClerkId, { 
-      clerkId: customData.clerkUserId 
+  if (customData?.stackUserId) {
+    const user = await convex.query(api.users.getUserByStackUserId, { 
+      stackUserId: customData.stackUserId 
     });
 
     if (user) {
       await convex.mutation(api.users.updateSubscription, {
-        clerkId: customData.clerkUserId,
+        stackUserId: customData.stackUserId,
         paddleCustomerId: data.id as string,
       });
       console.log(`Linked user ${user._id} to Paddle customer ${data.id}`);
@@ -146,7 +146,7 @@ async function handleSubscriptionCreated(data: Record<string, unknown>) {
   const trialEndsAt = calculateTrialEnd(currentBillingPeriod);
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     paddleSubscriptionId: data.id as string,
     subscriptionStatus: data.status as string,
     subscriptionTier: tier,
@@ -174,7 +174,7 @@ async function handleSubscriptionTrialing(data: Record<string, unknown>) {
   const trialEndsAt = calculateTrialEnd(currentBillingPeriod);
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     paddleSubscriptionId: data.id as string,
     subscriptionStatus: 'trialing',
     trialEndsAt,
@@ -197,7 +197,7 @@ async function handleTrialCompleted(data: Record<string, unknown>) {
   }
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     subscriptionStatus: 'active',
   });
 
@@ -217,7 +217,7 @@ async function handleTrialCanceled(data: Record<string, unknown>) {
   }
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     subscriptionStatus: 'free',
     subscriptionTier: 'free',
     trialEndsAt: undefined,
@@ -243,7 +243,7 @@ async function handleSubscriptionUpdated(data: Record<string, unknown>) {
   const tier = items?.[0] ? getTierFromPriceId(items[0].price?.id) : user.subscriptionTier;
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     paddleSubscriptionId: data.id as string,
     subscriptionStatus: data.status as string,
     subscriptionTier: tier,
@@ -266,7 +266,7 @@ async function handleSubscriptionPaused(data: Record<string, unknown>) {
   }
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     subscriptionStatus: 'paused',
   });
 
@@ -286,7 +286,7 @@ async function handleSubscriptionResumed(data: Record<string, unknown>) {
   }
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     subscriptionStatus: 'active',
   });
 
@@ -306,7 +306,7 @@ async function handleSubscriptionCanceled(data: Record<string, unknown>) {
   }
 
   await convex.mutation(api.users.updateSubscription, {
-    clerkId: user.clerkId,
+    stackUserId: user.stackUserId,
     subscriptionStatus: 'canceled',
     projectLimit: FREE_PROJECT_LIMIT,
   });
@@ -335,7 +335,7 @@ async function handleInvoicePaid(data: Record<string, unknown>) {
       const currentStatus = user.subscriptionStatus;
       if (currentStatus !== 'trialing') {
         await convex.mutation(api.users.updateSubscription, {
-          clerkId: user.clerkId,
+          stackUserId: user.stackUserId,
           subscriptionStatus: 'active',
         });
       }

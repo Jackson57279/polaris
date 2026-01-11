@@ -1,20 +1,37 @@
 # CONVEX KNOWLEDGE BASE
 
-**Generated:** 2025-01-05
-**Commit:** a62566a3
-**Branch:** 001-initial-setup
+**Generated:** 2025-01-10
+**Commit:** cf077f7f
+**Branch:** electron-desktop-integration-polaris-ide
 
 ## OVERVIEW
-Backend database operations with Convex real-time DB for projects, files, conversations, and messages.
+Backend database operations with Convex real-time DB for users, projects, files, conversations, and messages.
+
+## STRUCTURE
+```
+convex/
+├── schema.ts              # Database schema definition
+├── users.ts               # User subscription queries/mutations
+├── projects.ts            # Project CRUD operations
+├── files.ts               # File system operations
+├── conversations.ts       # Chat/conversation management
+├── messages.ts            # Message CRUD operations
+├── auth.ts                # Authentication helpers
+├── auth.config.ts         # Convex auth configuration
+├── system.ts              # Internal API for Inngest
+├── constants.ts           # Default values and config
+└── _generated/            # Auto-generated types
+```
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |------|----------|-------|
-| **Authentication** | `auth.ts`, `auth.config.ts` | Clerk integration, user verification |
-| **Database Schema** | `schema.ts` | Tables: projects, files, conversations, messages |
+| **Authentication** | `auth.ts`, `auth.config.ts` | Stack Auth integration, user verification |
+| **Database Schema** | `schema.ts` | Tables: users, projects, files, conversations, messages |
+| **User Operations** | `users.ts` | Subscription status, project limits, Paddle integration |
 | **Project Operations** | `projects.ts` | CRUD for projects, ownership validation |
 | **File System** | `files.ts` | File/folder operations, path resolution, recursive deletion |
-| **Conversations** | `conversations.ts` | Chat management, message retrieval |
+| **Conversations** | `conversations.ts`, `messages.ts` | Chat management, message retrieval |
 | **Internal API** | `system.ts` | Inngest background jobs, path-based file operations |
 | **Constants** | `constants.ts` | Default values and configuration |
 
@@ -41,8 +58,7 @@ Backend database operations with Convex real-time DB for projects, files, conver
 ## ANTI-PATTERNS (THIS PROJECT)
 - **No Direct DB Access**: All operations through Convex queries/mutations
 - **No Hard-coded User IDs**: Always verify current user identity
-- **No Unauthenticated Operations**: Every endpoint requires Clerk auth
+- **No Unauthenticated Operations**: Every endpoint requires Stack Auth
 - **No Manual Index Creation**: Use `index()` in schema definitions
 - **No Circular Dependencies**: Keep operations separated by domain
-- **No Client-side DB Logic**: Database operations only in Convex functions</content>
-<parameter name="filePath">convex/AGENTS.md
+- **No Client-side DB Logic**: Database operations only in Convex functions

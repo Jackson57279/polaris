@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/stack-auth-api';
 import { paddleCheckout, getPriceIdForTier } from '@/lib/paddle-server';
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new NextResponse('Unauthorized', { status: 401 });
+  const { user, userId, response } = await requireAuth();
+  if (!user) {
+    return response;
   }
 
   let tier: 'pro_monthly' | 'pro_yearly';
@@ -31,24 +31,14 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Price ID not configured', { status: 500 });
     }
 
-    const clerkResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-      },
-    });
-
-    if (!clerkResponse.ok) {
-      return new NextResponse('Failed to get user info', { status: 500 });
-    }
-
-    const clerkUser = await clerkResponse.json();
-    const email = clerkUser.email_addresses?.[0]?.email_address;
+    // Get email from Stack Auth user
+    const email = user.primaryEmail || '';
 
     const checkout = await paddleCheckout.create({
       items: [{ priceId, quantity: 1 }],
       customer: email ? { email } : undefined,
       customData: {
-        clerkUserId: userId,
+        stackUserId: userId,
         tier,
         useTrial: String(useTrial || false),
       },

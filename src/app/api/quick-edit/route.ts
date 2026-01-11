@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/lib/stack-auth-api";
 
 import { anthropic } from "@/lib/ai-providers";
 import { firecrawl } from "@/lib/firecrawl";
@@ -42,10 +42,10 @@ If the instruction is unclear or cannot be applied, return the original code unc
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
+    const { user, response } = await requireAuth();
     const { selectedCode, fullCode, instruction } = await request.json();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 400 }
