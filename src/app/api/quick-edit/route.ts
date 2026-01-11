@@ -69,11 +69,12 @@ export async function POST(request: Request) {
     const urls: string[] = instruction.match(URL_REGEX) || [];
     let documentationContext = "";
 
-    if (urls.length > 0) {
+if (urls.length > 0 && firecrawl) {
+      const fc = firecrawl;
       const scrapedResults = await Promise.all(
         urls.map(async (url) => {
           try {
-            const result = await firecrawl.scrape(url, {
+            const result = await fc.scrape(url, {
               formats: ["markdown"],
             });
 

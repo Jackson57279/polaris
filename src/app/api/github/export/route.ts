@@ -15,8 +15,11 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
+  const { user, userId, response } = await requireAuth();
 
+  if (!user) {
+    return response;
+  }
 
   const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
 

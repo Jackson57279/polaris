@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/stack-auth-api';
-import { paddleCheckout } from '@/lib/paddle-server';
+import { paddleCustomerPortal } from '@/lib/paddle-server';
 
 export async function POST(request: NextRequest) {
   const { user, response } = await requireAuth();
@@ -22,8 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Create a billing portal session
-    const portal = await paddleCheckout.getCustomerPortalUrl(customerId);
+    const portal = await paddleCustomerPortal.createSession(customerId);
     
     return NextResponse.json({ portalUrl: portal.url });
   } catch (error) {

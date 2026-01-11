@@ -13,6 +13,7 @@
     "test:electron": "vitest --config vitest.electron.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "dev:inngest": "NPM_CONFIG_CACHE=$(mktemp -d) npm exec --ignore-scripts=false inngest-cli@latest -- dev",
     "electron:dev": "concurrently \"npm run electron:dev:next\" \"npm run electron:dev:electron\"",
     "electron:dev:next": "cross-env NODE_ENV=development next dev",
     "electron:dev:electron": "wait-on http://localhost:3000 && npm run electron:compile && cross-env NODE_ENV=development electron .",
@@ -28,8 +29,6 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.1",
     "@ai-sdk/google": "^3.0.1",
-    "@clerk/nextjs": "^6.36.5",
-    "@clerk/themes": "^2.4.46",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-javascript": "^6.2.4",
@@ -94,7 +93,7 @@
     "electron-store": "^10.0.0",
     "electron-updater": "^6.3.0",
     "embla-carousel-react": "^8.6.0",
-    "inngest": "^3.48.1",
+    "inngest": "^3.49.1",
     "input-otp": "^1.4.2",
     "ky": "^1.14.2",
     "lucide-react": "^0.562.0",
@@ -121,6 +120,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
