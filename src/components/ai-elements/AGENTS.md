@@ -1,11 +1,26 @@
 # POLARIS KNOWLEDGE BASE
 
-**Generated:** 2025-01-05
-**Commit:** a62566a3
-**Branch:** 001-initial-setup
+**Generated:** 2025-01-10
+**Commit:** cf077f7f
+**Branch:** electron-desktop-integration-polaris-ide
 
 ## OVERVIEW
-Reusable React components for AI-powered conversation interfaces, featuring real-time messaging, reasoning display, and interactive input controls.
+Reusable React components for AI-powered conversation interfaces.
+
+## STRUCTURE
+```
+src/components/ai-elements/
+├── message.tsx           # Core message UI with branching, actions
+├── conversation.tsx      # Scrollable chat interface
+├── prompt-input.tsx      # Advanced input with file uploads, speech
+├── reasoning.tsx         # Collapsible reasoning display
+├── suggestion.tsx        # Inline code suggestion buttons
+├── shimmer.tsx           # Loading animations
+├── tool.tsx              # UI for AI tool calls
+├── canvas.tsx, node.tsx, edge.tsx  # Visual workflow components
+├── inline-citation.tsx   # Source citations
+└── checkpoint.tsx       # Progress tracking
+```
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
@@ -34,5 +49,4 @@ Reusable React components for AI-powered conversation interfaces, featuring real
 - **No manual state management**: Use Convex for real-time state synchronization
 - **No inline styles**: Strictly Tailwind CSS classes only
 - **No hardcoded AI keys**: Environment variables for all AI provider configurations
-- **No synchronous file operations**: All file handling is async with proper error boundaries</content>
-<parameter name="filePath">src/components/ai-elements/AGENTS.md
+- **No synchronous file operations**: All file handling is async with proper error boundaries
