@@ -74,10 +74,14 @@ export const demoGenerate = inngest.createFunction(
       return prompt.match(URL_REGEX) ?? [];
     }) as string[];
 
-    const scrapedContent = await step.run("scrape-urls", async () => {
+const scrapedContent = await step.run("scrape-urls", async () => {
+      if (!firecrawl) {
+        return "";
+      }
+      const fc = firecrawl;
       const results = await Promise.all(
         urls.map(async (url) => {
-          const result = await firecrawl.scrape(
+          const result = await fc.scrape(
             url,
             { formats: ["markdown"] },
           );

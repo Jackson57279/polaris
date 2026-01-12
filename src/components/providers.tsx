@@ -1,42 +1,40 @@
 "use client";
 
-import { 
-  Authenticated, 
-  Unauthenticated,
-  ConvexReactClient,
-  AuthLoading, 
-} from "convex/react";
-import { ClerkProvider, useAuth } from "@clerk/nextjs";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
-
-import { UnauthenticatedView } from "@/features/auth/components/unauthenticated-view";
-import { AuthLoadingView } from "@/features/auth/components/auth-loading-view";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProvider } from "convex/react";
+import { StackProvider, StackTheme } from "@stackframe/stack";
+import { stackClientApp } from "@/stack/client";
 
 import { ThemeProvider } from "./theme-provider";
+import { UserInitializer } from "@/features/auth/components/user-initializer";
+import { Suspense } from "react";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+// Set up Stack Auth for Convex
+if (typeof window !== 'undefined') {
+  convex.setAuth(stackClientApp.getConvexClientAuth({}));
+}
+
 export const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
-    <ClerkProvider>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-         <ThemeProvider
+    <StackProvider app={stackClientApp}>
+      <ConvexProvider client={convex}>
+        <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
-          <Authenticated>
-            {children}
-          </Authenticated>
-          <Unauthenticated>
-            <UnauthenticatedView />
-          </Unauthenticated>
-          <AuthLoading>
-            <AuthLoadingView />
-          </AuthLoading>
+          <StackTheme>
+            <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+              <UserInitializer>
+                {children}
+              </UserInitializer>
+            </Suspense>
+          </StackTheme>
         </ThemeProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+      </ConvexProvider>
+    </StackProvider>
   );
 };

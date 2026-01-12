@@ -20,14 +20,14 @@ export const getOrCreateUser = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await verifyAuth(ctx);
-    const clerkId = identity.subject;
+    const stackUserId = identity.subject;
     const email = identity.email || '';
     const now = Date.now();
 
     // Check if user exists
     const existingUser = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', clerkId))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', stackUserId))
       .first();
 
     if (existingUser) {
@@ -40,7 +40,7 @@ export const getOrCreateUser = mutation({
 
     // Create new user with free tier (10 projects)
     const userId = await ctx.db.insert('users', {
-      clerkId,
+      stackUserId,
       email,
       subscriptionStatus: 'free',
       subscriptionTier: 'free',
@@ -63,7 +63,7 @@ export const getSubscription = query({
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', identity.subject))
       .first();
 
     if (!user) {
@@ -99,7 +99,7 @@ export const getProjectCount = query({
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', identity.subject))
       .first();
 
     if (!user) {
@@ -121,7 +121,7 @@ export const getProjectCount = query({
  */
 export const updateSubscription = mutation({
   args: {
-    clerkId: v.string(),
+    stackUserId: v.string(),
     paddleCustomerId: v.optional(v.string()),
     paddleSubscriptionId: v.optional(v.string()),
     subscriptionStatus: v.optional(v.string()),
@@ -133,7 +133,7 @@ export const updateSubscription = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', args.clerkId))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', args.stackUserId))
       .first();
 
     if (!user) {
@@ -186,7 +186,7 @@ export const startTrial = mutation({
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', identity.subject))
       .first();
 
     if (!user) {
@@ -220,7 +220,7 @@ export const cancelTrial = mutation({
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', identity.subject))
       .first();
 
     if (!user) {
@@ -248,20 +248,20 @@ export const cancelTrial = mutation({
  */
 export const syncUserFromClerk = mutation({
   args: {
-    clerkId: v.string(),
+    stackUserId: v.string(),
     email: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', args.clerkId))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', args.stackUserId))
       .first();
 
     if (!user) {
       // Create new user
       const now = Date.now();
       await ctx.db.insert('users', {
-        clerkId: args.clerkId,
+        stackUserId: args.stackUserId,
         email: args.email,
         subscriptionStatus: 'free',
         subscriptionTier: 'free',
@@ -294,7 +294,7 @@ export const getBillingStatus = query({
 
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', identity.subject))
       .first();
 
     if (!user) {
@@ -326,12 +326,12 @@ export const getBillingStatus = query({
 /**
  * Get user by Clerk ID
  */
-export const getUserByClerkId = query({
-  args: { clerkId: v.string() },
+export const getUserByStackUserId = query({
+  args: { stackUserId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', args.clerkId))
+      .withIndex('by_stack_user', (q) => q.eq('stackUserId', args.stackUserId))
       .first();
 
     return user;

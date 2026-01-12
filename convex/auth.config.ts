@@ -1,10 +1,7 @@
-import { AuthConfig } from "convex/server";
+import { getConvexProvidersConfig } from "@stackframe/stack";
 
 export default {
-  providers: [
-    {
-      domain: process.env.CLERK_JWT_ISSUER_DOMAIN!,
-      applicationID: "convex",
-    },
-  ],
-} satisfies AuthConfig;
+  providers: getConvexProvidersConfig({
+    projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID || process.env.STACK_PROJECT_ID || "",
+  }),
+};

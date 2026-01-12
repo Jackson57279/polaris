@@ -1,5 +1,5 @@
 import { generateText, Output } from "ai";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/lib/stack-auth-api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -45,9 +45,9 @@ Your suggestion is inserted immediately after the cursor, so never suggest code 
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
+    const { user, response } = await requireAuth();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 403 },

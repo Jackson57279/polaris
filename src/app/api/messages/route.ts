@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/lib/stack-auth-api";
 
 import { inngest } from "@/inngest/client";
 import { convex } from "@/lib/convex-client";
@@ -18,10 +18,10 @@ const deleteRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireAuth();
+  
+  if (!user) {
+    return response;
   }
 
   const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
@@ -98,10 +98,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { userId } = await auth();
+  const { user, response } = await requireAuth();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return response;
   }
 
   const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;

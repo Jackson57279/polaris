@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { clerkClient } from "@clerk/nextjs/server";
+import { stackServerApp } from "@/stack/server";
 
 export function createOctokit(accessToken: string) {
   return new Octokit({ auth: accessToken });
@@ -7,12 +7,18 @@ export function createOctokit(accessToken: string) {
 
 export async function getGithubToken(userId: string): Promise<string | null> {
   try {
-    const client = await clerkClient();
-    const tokens = await client.users.getUserOauthAccessToken(
-      userId,
-      "oauth_github"
-    );
-    return tokens.data[0]?.token ?? null;
+    const user = await stackServerApp.getUser(userId);
+    if (!user) {
+      return null;
+    }
+
+    const connectedAccount = await user.getConnectedAccount("github");
+    if (!connectedAccount) {
+      return null;
+    }
+
+    const accessTokenData = await connectedAccount.getAccessToken();
+    return accessTokenData?.accessToken ?? null;
   } catch {
     return null;
   }

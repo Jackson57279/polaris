@@ -1,11 +1,23 @@
 # POLARIS KNOWLEDGE BASE
 
-**Generated:** 2025-01-05
-**Commit:** dd285c3
-**Branch:** 001-initial-setup
+**Generated:** 2025-01-10
+**Commit:** cf077f7f
+**Branch:** electron-desktop-integration-polaris-ide
 
 ## OVERVIEW
-shadcn/ui component library with 53 reusable UI primitives for Polaris frontend.
+shadcn/ui component library with reusable UI primitives for Polaris frontend.
+
+## STRUCTURE
+```
+src/components/ui/
+├── input.tsx, textarea.tsx, select.tsx, checkbox.tsx, switch.tsx
+├── card.tsx, sheet.tsx, dialog.tsx, popover.tsx, tooltip.tsx
+├── button.tsx, toggle.tsx, accordion.tsx, collapsible.tsx
+├── alert.tsx, alert-dialog.tsx, sonner.tsx, progress.tsx, skeleton.tsx
+├── table.tsx, avatar.tsx, badge.tsx, kbd.tsx, separator.tsx
+├── tabs.tsx, breadcrumb.tsx, navigation-menu.tsx
+└── aspect-ratio.tsx, scroll-area.tsx, resizable.tsx, drawer.tsx
+```
 
 ## WHERE TO LOOK
 | Category | Components | Location |

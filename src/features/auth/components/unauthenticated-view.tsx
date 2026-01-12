@@ -1,4 +1,5 @@
 import { ShieldAlertIcon } from "lucide-react";
+import Link from "next/link";
 
 import {
   Item,
@@ -8,7 +9,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
 export const UnauthenticatedView = () => {
@@ -22,15 +22,15 @@ export const UnauthenticatedView = () => {
           <ItemContent>
             <ItemTitle>Unauthorized Access</ItemTitle>
             <ItemDescription>
-              You are not authorized to access this resource.
+              You are not authorized to access this resource. Please sign in to continue.
             </ItemDescription>
           </ItemContent>
           <ItemActions>
-            <SignInButton>
+            <Link href="/handler/sign-in">
               <Button variant="outline" size="sm">
                 Sign in
               </Button>
-            </SignInButton>
+            </Link>
           </ItemActions>
         </Item>
       </div>

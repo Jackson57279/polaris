@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
 import { verifyAuth } from "./auth";
+import { FREE_PROJECT_LIMIT } from "./users";
 
 export const create = mutation({
   args: {
@@ -9,24 +10,36 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
-    const clerkId = identity.subject;
+    const stackUserId = identity.subject;
+    const now = Date.now();
 
-    // Get user subscription info
-    const user = await ctx.db
+    let user = await ctx.db
       .query("users")
-      .withIndex("by_clerk", (q) => q.eq("clerkId", clerkId))
+      .withIndex("by_stack_user", (q) => q.eq("stackUserId", stackUserId))
       .first();
 
     if (!user) {
-      throw new Error("User not found. Please sign in again.");
+      const email = identity.email || "";
+      const userId = await ctx.db.insert("users", {
+        stackUserId,
+        email,
+        subscriptionStatus: "free",
+        subscriptionTier: "free",
+        projectLimit: FREE_PROJECT_LIMIT,
+        createdAt: now,
+        updatedAt: now,
+      });
+      user = await ctx.db.get(userId);
     }
 
-    // Check if user can create more projects
+    if (!user) {
+      throw new Error("Failed to create user record. Please try again.");
+    }
+
     if (user.projectLimit !== -1) {
-      // Count existing projects
       const existingProjects = await ctx.db
         .query("projects")
-        .withIndex("by_owner", (q) => q.eq("ownerId", clerkId))
+        .withIndex("by_owner", (q) => q.eq("ownerId", stackUserId))
         .collect();
 
       if (existingProjects.length >= user.projectLimit) {
@@ -39,9 +52,9 @@ export const create = mutation({
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
-      ownerId: clerkId,
+      ownerId: stackUserId,
       userId: user._id,
-      updatedAt: Date.now(),
+      updatedAt: now,
     });
 
     return projectId;

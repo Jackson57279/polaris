@@ -1,0 +1,58 @@
+appId: com.polaris.ide
+productName: Polaris IDE
+copyright: Copyright © 2025 Polaris Team
+
+directories:
+  buildResources: electron/resources
+  output: dist-electron
+
+files:
+  - "!**/.git/**"
+  - "!src/**"
+  - "!tests/**"
+  - "!.next/cache/**"
+  - "dist-electron/main/**/*.js"
+  - "dist-electron/preload/**/*.js"
+  - ".next/standalone/**"
+  - ".next/static/**"
+  - "public/**"
+  - "package.json"
+
+extraResources:
+  - from: ".next/standalone"
+    to: "server"
+  - from: ".next/static"
+    to: "server/.next/static"
+  - from: "public"
+    to: "server/public"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: electron/resources/icons/icon.ico
+  publisherName: Polaris Team
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  perMachine: false
+
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  icon: electron/resources/icons/
+  category: Development
+  mimeTypes:
+    - x-scheme-handler/polaris
+  executableName: polaris-ide
+
+publish:
+  provider: github
+  owner: Jackson57279
+  repo: polaris
