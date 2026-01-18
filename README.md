@@ -24,7 +24,7 @@ Polaris is a browser-based IDE inspired by Cursor AI, featuring:
 | **Frontend**  | Next.js 16, React 19, TypeScript, Tailwind CSS 4            |
 | **Editor**    | CodeMirror 6, Custom Extensions, One Dark Theme             |
 | **Backend**   | Convex (Real-time DB), Inngest (Background Jobs)            |
-| **AI**        | Claude Sonnet 4 (preferred) or Gemini 2.0 Flash (free tier) |
+| **AI**        | Z.ai GLM-4.7 via Cerebras (primary, 1000 TPS) + OpenRouter fallback |
 | **Auth**      | Clerk (with GitHub OAuth)                                   |
 | **Execution** | WebContainer API, xterm.js                                  |
 | **UI**        | shadcn/ui, Radix UI                                         |
@@ -69,7 +69,8 @@ Polaris is a browser-based IDE inspired by Cursor AI, featuring:
   - [Clerk](https://cwa.run/clerk) - Authentication
   - [Convex](https://cwa.run/convex) - Database
   - [Inngest](https://cwa.run/inngest) - Background jobs
-  - [Anthropic](https://anthropic.com) or [Google AI Studio](https://aistudio.google.com) - AI API (one required)
+  - [Cerebras AI](https://inference.cerebras.ai) - AI API for Z.ai GLM-4.7 (primary, free tier available)
+  - [OpenRouter](https://openrouter.ai) - AI API fallback (required)
   - [Firecrawl](https://cwa.run/firecrawl) - Web scraping (optional)
   - [Sentry](https://cwa.run/sentry) - Error tracking (optional)
 
@@ -106,9 +107,9 @@ Polaris is a browser-based IDE inspired by Cursor AI, featuring:
    CONVEX_DEPLOYMENT=
    POLARIS_CONVEX_INTERNAL_KEY=  # Generate a random string
 
-   # AI Provider (choose one)
-   ANTHROPIC_API_KEY=        # Preferred - Claude Sonnet 4
-   GOOGLE_GENERATIVE_AI_API_KEY=  # Free alternative - Gemini 2.0 Flash
+   # AI Providers (both required)
+   CEREBRAS_API_KEY=         # Primary - Z.ai GLM-4.7 (1000 tokens/sec, free tier)
+   OPENROUTER_API_KEY=       # Fallback - Used when Cerebras hits rate limits
 
    # Firecrawl (optional)
    FIRECRAWL_API_KEY=

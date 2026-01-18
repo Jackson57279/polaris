@@ -1,4 +1,9 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import {
+  generateWithFallback,
+  getOpenRouterModel,
+  getDefaultModel,
+} from "./ai-provider-with-fallback";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -10,3 +15,5 @@ const openrouter = createOpenRouter({
 
 export const anthropic = (model: string) => openrouter.chat(model);
 export const google = (model: string) => openrouter.chat(model);
+
+export { generateWithFallback, getOpenRouterModel, getDefaultModel };

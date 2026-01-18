@@ -1,9 +1,8 @@
 import { z } from "zod";
-import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/stack-auth-api";
 
-import { anthropic } from "@/lib/ai-providers";
+import { generateWithFallback } from "@/lib/ai-providers";
 import { firecrawl } from "@/lib/firecrawl";
 
 const quickEditSchema = z.object({
@@ -102,13 +101,19 @@ if (urls.length > 0 && firecrawl) {
       .replace("{instruction}", instruction)
       .replace("{documentation}", documentationContext);
 
-    const { output } = await generateText({
-      model: anthropic("anthropic/claude-3.7-sonnet"),
-      output: Output.object({ schema: quickEditSchema }),
-      prompt,
-    });
+    const result = await generateWithFallback(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.7, max_tokens: 2000 }
+    );
 
-    return NextResponse.json({ editedCode: output.editedCode });
+    const editedText = result.data;
+    const parsedEdit = quickEditSchema.safeParse({ editedCode: editedText });
+    
+    if (!parsedEdit.success) {
+      return NextResponse.json({ editedCode: selectedCode });
+    }
+
+    return NextResponse.json({ editedCode: parsedEdit.data.editedCode });
   } catch (error) {
     console.error("Edit error:", error);
     return NextResponse.json(

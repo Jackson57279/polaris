@@ -1,12 +1,14 @@
 import ky from "ky";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   CopyIcon, 
   HistoryIcon, 
   LoaderIcon, 
   PlusIcon
 } from "lucide-react";
+import { isElectron } from "@/lib/electron/environment";
+import { ipcClient } from "@/lib/electron/ipc-client";
 
 import {
   Conversation,
@@ -20,6 +22,11 @@ import {
   MessageActions,
   MessageAction,
 } from "@/components/ai-elements/message";
+import {
+  AIStatusIndicator,
+  type AIStatus,
+} from "@/components/ai-elements/ai-status-indicator";
+import { StreamingIndicator } from "@/components/ai-elements/streaming-indicator";
 import {
   PromptInput,
   PromptInputBody,
@@ -65,10 +72,21 @@ export const ConversationSidebar = ({
   const activeConversation = useConversation(activeConversationId);
   const conversationMessages = useMessages(activeConversationId);
 
-  // Check if any message is currently processing
   const isProcessing = conversationMessages?.some(
     (msg) => msg.status === "processing"
   );
+
+  const aiStatus: AIStatus = isProcessing ? "thinking" : "idle";
+
+  useEffect(() => {
+    if (!isElectron()) return;
+
+    if (isProcessing) {
+      ipcClient.window_setTitle("⚡ Polaris IDE").catch(() => {});
+    } else {
+      ipcClient.window_setTitle("Polaris IDE").catch(() => {});
+    }
+  }, [isProcessing]);
 
   const handleCreateConversation = async () => {
     try {
@@ -174,7 +192,8 @@ export const ConversationSidebar = ({
                 {message.status === "processing" ? (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <LoaderIcon className="size-4 animate-spin" />
-                    <span>Thinking...</span>
+                    <span>Thinking</span>
+                    <StreamingIndicator />
                   </div>
                 ) : (
                   <MessageResponse>{message.content}</MessageResponse>
@@ -200,8 +219,9 @@ export const ConversationSidebar = ({
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
-      <div className="p-3">
-        <PromptInput 
+      <div className="p-3 space-y-2">
+        <AIStatusIndicator status={aiStatus} />
+        <PromptInput
           onSubmit={handleSubmit}
           className="mt-2"
         >

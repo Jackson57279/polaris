@@ -23,7 +23,8 @@ const electronAPI = {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:isMaximized')
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    setTitle: (title: string) => ipcRenderer.invoke('window:setTitle', title)
   },
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('updater:checkForUpdates'),

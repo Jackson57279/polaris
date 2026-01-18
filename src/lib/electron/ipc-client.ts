@@ -77,6 +77,11 @@ export class IPCClient {
     return window.electron.window.isMaximized();
   }
 
+  async window_setTitle(title: string) {
+    this.checkElectron();
+    return window.electron.window.setTitle(title);
+  }
+
   async updater_checkForUpdates() {
     this.checkElectron();
     return window.electron.updater.checkForUpdates();

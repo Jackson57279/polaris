@@ -23,4 +23,9 @@ export function registerWindowHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle('window:isMaximized', () => {
     return { success: true, data: mainWindow.isMaximized() };
   });
+
+  ipcMain.handle('window:setTitle', (_event, title: string) => {
+    mainWindow.setTitle(title);
+    return { success: true };
+  });
 }

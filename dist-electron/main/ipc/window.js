@@ -23,5 +23,9 @@ function registerWindowHandlers(mainWindow) {
     electron_1.ipcMain.handle('window:isMaximized', () => {
         return { success: true, data: mainWindow.isMaximized() };
     });
+    electron_1.ipcMain.handle('window:setTitle', (_event, title) => {
+        mainWindow.setTitle(title);
+        return { success: true };
+    });
 }
 //# sourceMappingURL=window.js.map

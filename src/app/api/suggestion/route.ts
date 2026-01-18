@@ -1,9 +1,9 @@
-import { generateText, Output } from "ai";
+import { Output } from "ai";
 import { requireAuth } from "@/lib/stack-auth-api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { anthropic } from "@/lib/ai-providers";
+import { generateWithFallback } from "@/lib/ai-providers";
 
 const suggestionSchema = z.object({
   suggestion: z
@@ -82,13 +82,19 @@ export async function POST(request: Request) {
       .replace("{nextLines}", nextLines || "")
       .replace("{lineNumber}", lineNumber.toString());
 
-    const { output } = await generateText({
-      model: anthropic("anthropic/claude-3.7-sonnet"),
-      output: Output.object({ schema: suggestionSchema }),
-      prompt,
-    });
+    const result = await generateWithFallback(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.7, max_tokens: 500 }
+    );
 
-    return NextResponse.json({ suggestion: output.suggestion })
+    const suggestionText = result.data;
+    const parsedSuggestion = suggestionSchema.safeParse({ suggestion: suggestionText });
+    
+    if (!parsedSuggestion.success) {
+      return NextResponse.json({ suggestion: "" });
+    }
+
+    return NextResponse.json({ suggestion: parsedSuggestion.data.suggestion })
   } catch (error) {
     console.error("Suggestion error: ", error);
     return NextResponse.json(
