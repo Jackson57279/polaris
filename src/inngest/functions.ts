@@ -80,6 +80,7 @@ export const demoGenerate = inngest.createFunction(
 
       const results = await Promise.all(
         urls.map(async (url) => {
+          if (!firecrawl) return null;
           const result = await firecrawl.scrape(url, { formats: ["markdown"] });
           return result.markdown ?? null;
         })

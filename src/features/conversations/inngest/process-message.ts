@@ -83,14 +83,18 @@ export const processMessage = inngest.createFunction(
         onStepFinish: async ({ toolCalls, toolResults }) => {
           if (toolCalls && toolCalls.length > 0) {
             for (const toolCall of toolCalls) {
-              const args = "args" in toolCall ? toolCall.args : {};
+              const tc = toolCall as {
+                toolCallId: string;
+                toolName: string;
+                args?: unknown;
+              };
               await convex.mutation(api.system.appendToolCall, {
                 internalKey,
                 messageId,
                 toolCall: {
-                  id: toolCall.toolCallId,
-                  name: toolCall.toolName,
-                  args,
+                  id: tc.toolCallId,
+                  name: tc.toolName,
+                  args: tc.args ?? {},
                 },
               });
             }
@@ -98,12 +102,15 @@ export const processMessage = inngest.createFunction(
 
           if (toolResults && toolResults.length > 0) {
             for (const toolResult of toolResults) {
-              const result = "result" in toolResult ? toolResult.result : null;
+              const tr = toolResult as {
+                toolCallId: string;
+                result?: unknown;
+              };
               await convex.mutation(api.system.appendToolResult, {
                 internalKey,
                 messageId,
-                toolCallId: toolResult.toolCallId,
-                result,
+                toolCallId: tr.toolCallId,
+                result: tr.result ?? null,
               });
             }
           }

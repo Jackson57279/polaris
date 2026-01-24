@@ -12,7 +12,8 @@ import { getOpenRouterModel } from "./ai-providers";
 import { logProviderEvent } from "./ai-provider-utils";
 import { CEREBRAS_MODEL } from "./cerebras-provider";
 
-export type ToolSet = Record<string, Tool<unknown, unknown>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ToolSet = Record<string, Tool<any, any>>;
 
 export interface GenerateTextWithToolsOptions<TOOLS extends ToolSet = ToolSet> {
   system?: string;
@@ -139,7 +140,8 @@ async function buildOpenAITools(toolSet: ToolSet): Promise<Array<unknown>> {
   );
 }
 
-function getToolExecute(tool: Tool<unknown, unknown>):
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getToolExecute(tool: Tool<any, any>):
   | ((
       input: unknown,
       options: { toolCallId: string; messages: ModelMessage[] }
@@ -322,7 +324,9 @@ export async function generateTextWithToolsPreferCerebras<TOOLS extends ToolSet>
       system: options.system,
       messages: options.messages,
       tools: options.tools,
-      toolChoice: toolChoiceFn ? undefined : options.toolChoice,
+      toolChoice: toolChoiceFn
+        ? undefined
+        : (options.toolChoice as Exclude<typeof options.toolChoice, Function>),
       prepareStep: toolChoiceFn
         ? async ({ stepNumber }) => ({ toolChoice: toolChoiceFn(stepNumber) })
         : undefined,
