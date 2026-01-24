@@ -252,20 +252,37 @@ async function generateWithCerebrasTools<TOOLS extends ToolSet>(
         continue;
       }
 
-      const rawResult = execute(args, {
-        toolCallId,
-        messages: options.messages,
-      });
+      try {
+        const rawResult = execute(args, {
+          toolCallId,
+          messages: options.messages,
+        });
 
-      const result = await resolveToolResult(rawResult);
+        const result = await resolveToolResult(rawResult);
 
-      executedToolResults.push({ toolCallId, result });
+        executedToolResults.push({ toolCallId, result });
 
-      history.push({
-        role: "tool",
-        tool_call_id: toolCallId,
-        content: typeof result === "string" ? result : JSON.stringify(result),
-      });
+        let toolContent: string;
+        try {
+          toolContent = typeof result === "string" ? result : JSON.stringify(result);
+        } catch {
+          toolContent = "[unserializable tool result]";
+        }
+
+        history.push({
+          role: "tool",
+          tool_call_id: toolCallId,
+          content: toolContent,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        executedToolResults.push({ toolCallId, result: { error: errorMessage } });
+        history.push({
+          role: "tool",
+          tool_call_id: toolCallId,
+          content: `Error: ${errorMessage}`,
+        });
+      }
     }
 
     await options.onStepFinish?.({

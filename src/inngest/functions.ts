@@ -69,7 +69,7 @@ export const demoGenerate = inngest.createFunction(
   async ({ event, step }) => {
     const { prompt } = event.data as { prompt: string };
 
-    const urls = (await step.run("exctract-urls", async () => {
+    const urls = (await step.run("extract-urls", async () => {
       return prompt.match(URL_REGEX) ?? [];
     })) as string[];
 
