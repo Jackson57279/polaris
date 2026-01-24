@@ -1,13 +1,12 @@
-import { generateText, stepCountIs } from "ai";
-import { inngest } from "./client";
-import { firecrawl } from "@/lib/firecrawl";
 import { ConvexHttpClient } from "convex/browser";
 
-import { anthropic } from "@/lib/ai-providers";
+import { generateWithFallback } from "@/lib/ai-providers";
 import { createFileTools } from "@/lib/ai-tools";
+import { firecrawl } from "@/lib/firecrawl";
+import { generateTextWithToolsPreferCerebras } from "@/lib/generate-text-with-tools";
 
-import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { inngest } from "./client";
 
 const URL_REGEX = /https?:\/\/[^\s]+/g;
 
@@ -38,16 +37,13 @@ export const generateProject = inngest.createFunction(
         convexToken: string;
       };
 
-    // Create Convex client for this background job
     const convex = new ConvexHttpClient(convexUrl);
     convex.setAuth(convexToken);
 
-    // Run AI generation in background
     await step.run("generate", async () => {
       const tools = createFileTools(projectId, internalKey, convex);
 
-      return await generateText({
-        model: anthropic("anthropic/claude-sonnet-4"),
+      return await generateTextWithToolsPreferCerebras({
         system: SYSTEM_PROMPT,
         messages: [
           {
@@ -56,7 +52,10 @@ export const generateProject = inngest.createFunction(
           },
         ],
         tools,
-        stopWhen: stepCountIs(10),
+        maxSteps: 10,
+        maxTokens: 2000,
+        toolChoice: (stepNumber) =>
+          stepNumber === 0 ? { type: "tool", toolName: "writeFile" } : "auto",
       });
     });
 
@@ -68,26 +67,25 @@ export const demoGenerate = inngest.createFunction(
   { id: "demo-generate" },
   { event: "demo/generate" },
   async ({ event, step }) => {
-    const { prompt } = event.data as { prompt: string; };
+    const { prompt } = event.data as { prompt: string };
 
-    const urls = await step.run("exctract-urls", async () => {
+    const urls = (await step.run("extract-urls", async () => {
       return prompt.match(URL_REGEX) ?? [];
-    }) as string[];
+    })) as string[];
 
-const scrapedContent = await step.run("scrape-urls", async () => {
+    const scrapedContent = await step.run("scrape-urls", async () => {
       if (!firecrawl) {
         return "";
       }
-      const fc = firecrawl;
+
       const results = await Promise.all(
         urls.map(async (url) => {
-          const result = await fc.scrape(
-            url,
-            { formats: ["markdown"] },
-          );
+          if (!firecrawl) return null;
+          const result = await firecrawl.scrape(url, { formats: ["markdown"] });
           return result.markdown ?? null;
         })
       );
+
       return results.filter(Boolean).join("\n\n");
     });
 
@@ -96,17 +94,12 @@ const scrapedContent = await step.run("scrape-urls", async () => {
       : prompt;
 
     await step.run("generate-text", async () => {
-      return await generateText({
-        model: anthropic('anthropic/claude-3-haiku'),
-        prompt: finalPrompt,
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: true,
-          recordOutputs: true,
-        },
-      });
-    })
-  },
+      return await generateWithFallback(
+        [{ role: "user", content: finalPrompt }],
+        { temperature: 0.7, max_tokens: 2000 }
+      );
+    });
+  }
 );
 
 export const demoError = inngest.createFunction(
