@@ -22,6 +22,7 @@ import { GitHubImportDialog } from "./github-import-dialog";
 import { AIGenerateDialog } from "./ai-generate-dialog";
 import { useUser } from "@stackframe/stack";
 import { UnauthenticatedView } from "@/features/auth/components/unauthenticated-view";
+import { PricingCard } from "@/components/billing/pricing-card";
 
 const font = Poppins({
   subsets: ["latin"],
@@ -76,7 +77,11 @@ export const ProjectsView = () => {
         open={generateDialogOpen}
         onOpenChange={setGenerateDialogOpen}
       />
-      <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center p-6 md:p-16">
+      <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center p-6 md:p-16 relative">
+        <div className="absolute top-6 right-6 z-10">
+          <PricingCard />
+        </div>
+        
         <div className="w-full max-w-sm mx-auto flex flex-col gap-4 items-center">
 
           <div className="flex justify-between gap-4 w-full items-center">

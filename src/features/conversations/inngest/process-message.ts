@@ -1,9 +1,10 @@
 import { NonRetriableError } from "inngest";
+import { createAgent } from "@inngest/agent-kit";
 
 import { inngest } from "@/inngest/client";
-import { createFileTools } from "@/lib/ai-tools";
+import { createAgentFileTools } from "@/lib/agent-kit-tools";
+import { createCerebrasModel, createOpenRouterModel } from "@/lib/agent-kit-provider";
 import { convex } from "@/lib/convex-client";
-import { generateTextWithToolsPreferCerebras } from "@/lib/generate-text-with-tools";
 
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -26,6 +27,17 @@ When writing code, ensure it is well-structured, follows best practices, and inc
 If you need to understand the project structure before making changes, use getProjectStructure or listFiles first.
 
 Be concise in your responses. Focus on helping the user accomplish their coding tasks.`;
+
+function getModel() {
+  try {
+    if (process.env.CEREBRAS_API_KEY) {
+      return createCerebrasModel();
+    }
+  } catch {
+    // Fall through to OpenRouter
+  }
+  return createOpenRouterModel();
+}
 
 export const processMessage = inngest.createFunction(
   {
@@ -71,60 +83,89 @@ export const processMessage = inngest.createFunction(
       });
     });
 
-    const tools = createFileTools(context.projectId, internalKey);
+    const tools = createAgentFileTools({
+      projectId: context.projectId,
+      internalKey,
+      convex,
+    });
+
+    const polarisAgent = createAgent({
+      name: "polaris-assistant",
+      description: "An AI coding assistant that helps with code tasks",
+      system: SYSTEM_PROMPT,
+      model: getModel(),
+      tools,
+      tool_choice: "auto",
+    });
 
     const result = await step.run("generate-ai-response", async () => {
-      const response = await generateTextWithToolsPreferCerebras({
-        system: SYSTEM_PROMPT,
-        messages: context.messages,
-        tools,
-        maxSteps: 10,
-        maxTokens: 2000,
-        onStepFinish: async ({ toolCalls, toolResults }) => {
-          if (toolCalls && toolCalls.length > 0) {
-            for (const toolCall of toolCalls) {
-              const tc = toolCall as {
-                toolCallId: string;
-                toolName: string;
-                args?: unknown;
-              };
+      const lastUserMessage = context.messages.length > 0
+        ? context.messages[context.messages.length - 1]
+        : null;
+
+      const userInput = lastUserMessage?.content ?? "";
+
+      const response = await polarisAgent.run(userInput, {
+        model: getModel(),
+        maxIter: 10,
+      });
+
+      for (const message of response.output) {
+        if (message.type === "tool_call") {
+          for (const tool of message.tools) {
+            try {
               await convex.mutation(api.system.appendToolCall, {
                 internalKey,
                 messageId,
                 toolCall: {
-                  id: tc.toolCallId,
-                  name: tc.toolName,
-                  args: tc.args ?? {},
+                  id: tool.id,
+                  name: tool.name,
+                  args: tool.input ?? {},
                 },
               });
+            } catch {
+              // Best-effort logging
             }
           }
+        }
 
-          if (toolResults && toolResults.length > 0) {
-            for (const toolResult of toolResults) {
-              const tr = toolResult as {
-                toolCallId: string;
-                result?: unknown;
-              };
-              await convex.mutation(api.system.appendToolResult, {
-                internalKey,
-                messageId,
-                toolCallId: tr.toolCallId,
-                result: tr.result ?? null,
-              });
-            }
+        if (message.type === "tool_result") {
+          try {
+            await convex.mutation(api.system.appendToolResult, {
+              internalKey,
+              messageId,
+              toolCallId: message.tool.id,
+              result: message.content ?? null,
+            });
+          } catch {
+            // Best-effort logging
           }
-        },
-      });
+        }
+      }
 
-      return response.text;
+      const textOutput = response.output.find((m) => m.type === "text");
+      if (!textOutput) {
+        return "I've completed the task.";
+      }
+      
+      if (textOutput.type === "text") {
+        const content = textOutput.content;
+        if (typeof content === "string") {
+          return content;
+        }
+        if (Array.isArray(content)) {
+          return content.map((c) => c.text).join("");
+        }
+      }
+      
+      return "I've completed the task.";
     });
 
     await step.run("update-assistant-message", async () => {
       await convex.mutation(api.system.updateMessageContent, {
         internalKey,
         messageId,
-        content: result || "I've completed the task.",
+        content: result,
       });
     });
   }
