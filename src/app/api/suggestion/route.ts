@@ -1,8 +1,9 @@
+import { Output } from "ai";
 import { requireAuth } from "@/lib/stack-auth-api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { generateText } from "@/lib/agent-kit-provider";
+import { generateWithFallback } from "@/lib/ai-providers";
 
 const suggestionSchema = z.object({
   suggestion: z
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
       .replace("{nextLines}", nextLines || "")
       .replace("{lineNumber}", lineNumber.toString());
 
-    const result = await generateText(
+    const result = await generateWithFallback(
       [{ role: "user", content: prompt }],
       { temperature: 0.7, max_tokens: 500 }
     );

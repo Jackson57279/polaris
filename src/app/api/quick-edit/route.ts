@@ -2,7 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/stack-auth-api";
 
-import { generateText } from "@/lib/agent-kit-provider";
+import { generateWithFallback } from "@/lib/ai-providers";
 import { firecrawl } from "@/lib/firecrawl";
 
 const quickEditSchema = z.object({
@@ -101,7 +101,7 @@ if (urls.length > 0 && firecrawl) {
       .replace("{instruction}", instruction)
       .replace("{documentation}", documentationContext);
 
-    const result = await generateText(
+    const result = await generateWithFallback(
       [{ role: "user", content: prompt }],
       { temperature: 0.7, max_tokens: 2000 }
     );
