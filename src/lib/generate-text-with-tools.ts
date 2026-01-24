@@ -37,7 +37,7 @@ export interface GenerateTextWithToolsResult {
   usedFallback: boolean;
 }
 
-const DEFAULT_OPENROUTER_MODEL = "zai/glm-4.7";
+const DEFAULT_OPENROUTER_MODEL = "z-ai/glm-4.7";
 
 type OpenAIToolCall = {
   id: string;

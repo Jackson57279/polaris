@@ -5,7 +5,7 @@ const cerebrasClient = new Cerebras({
   apiKey: process.env.CEREBRAS_API_KEY,
 });
 
-export const CEREBRAS_MODEL = 'zai/glm-4.7';
+export const CEREBRAS_MODEL = 'zai-glm-4.7';
 
 export interface CerebrasStreamChunk {
   choices: Array<{
