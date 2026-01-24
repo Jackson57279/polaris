@@ -107,4 +107,18 @@ export default defineSchema({
   })
     .index("by_conversation", ["conversationId"])
     .index("by_project_status", ["projectId", "status"]),
+
+  generationEvents: defineTable({
+    projectId: v.id("projects"),
+    type: v.union(
+      v.literal("step"),
+      v.literal("file"),
+      v.literal("info"),
+      v.literal("error")
+    ),
+    message: v.string(),
+    filePath: v.optional(v.string()),
+    preview: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_project_created_at", ["projectId", "createdAt"]),
 });

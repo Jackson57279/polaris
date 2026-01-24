@@ -110,6 +110,37 @@ export const getById = query({
   },
 });
 
+export const getGenerationEvents = query({
+  args: {
+    projectId: v.id("projects"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyAuth(ctx);
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    if (project.ownerId !== identity.subject) {
+      throw new Error("Unauthorized access to this project");
+    }
+
+    const limit = args.limit ?? 200;
+
+    const events = await ctx.db
+      .query("generationEvents")
+      .withIndex("by_project_created_at", (q) =>
+        q.eq("projectId", args.projectId)
+      )
+      .order("desc")
+      .take(limit);
+
+    return events.reverse();
+  },
+});
+
 export const rename = mutation({
   args: {
     id: v.id("projects"),

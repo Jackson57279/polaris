@@ -71,6 +71,20 @@ export const createFileTools = (
           content,
         });
 
+        const preview = content.length > 500 ? `${content.slice(0, 500)}…` : content;
+        try {
+          await client.mutation(api.system.appendGenerationEvent, {
+            internalKey,
+            projectId,
+            type: "file",
+            message: `Wrote ${path}`,
+            filePath: path,
+            preview,
+          });
+        } catch {
+          // Best-effort logging for generation events.
+        }
+
         return `Successfully wrote to ${path}`;
       } catch (error) {
         return `Error writing file: ${error instanceof Error ? error.message : "Unknown error"}`;
@@ -96,6 +110,18 @@ export const createFileTools = (
           projectId,
           path,
         });
+
+        try {
+          await client.mutation(api.system.appendGenerationEvent, {
+            internalKey,
+            projectId,
+            type: "file",
+            message: `Deleted ${path}`,
+            filePath: path,
+          });
+        } catch {
+          // Best-effort logging for generation events.
+        }
 
         return `Successfully deleted ${path}`;
       } catch (error) {

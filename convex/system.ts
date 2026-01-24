@@ -410,6 +410,34 @@ export const appendToolResult = mutation({
   },
 });
 
+export const appendGenerationEvent = mutation({
+  args: {
+    internalKey: v.string(),
+    projectId: v.id("projects"),
+    type: v.union(
+      v.literal("step"),
+      v.literal("file"),
+      v.literal("info"),
+      v.literal("error")
+    ),
+    message: v.string(),
+    filePath: v.optional(v.string()),
+    preview: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+
+    await ctx.db.insert("generationEvents", {
+      projectId: args.projectId,
+      type: args.type,
+      message: args.message,
+      filePath: args.filePath,
+      preview: args.preview,
+      createdAt: Date.now(),
+    });
+  },
+});
+
 export const getProcessingMessages = query({
   args: {
     internalKey: v.string(),

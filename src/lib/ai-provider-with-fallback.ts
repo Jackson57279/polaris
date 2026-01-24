@@ -15,7 +15,7 @@ const openrouter = createOpenRouter({
   },
 });
 
-const FALLBACK_MODEL = "anthropic/claude-sonnet-4";
+const FALLBACK_MODEL = "z-ai/glm-4.7"
 
 export interface AIProviderResult<T> {
   data: T;
@@ -42,32 +42,33 @@ export async function generateWithFallback(
       },
     };
   } catch (error) {
-    if (error instanceof Cerebras.RateLimitError) {
-      logProviderEvent("Rate limit hit, falling back to OpenRouter");
-      
-      const { generateText } = await import("ai");
-      const response = await generateText({
-        model: openrouter.chat(FALLBACK_MODEL),
-        messages: messages.map((m) => ({
-          role: m.role as "system" | "user" | "assistant",
-          content: m.content,
-        })),
-        temperature: options?.temperature ?? 0.7,
-        maxOutputTokens: options?.max_tokens ?? 2000,
-      });
+    const isRateLimit = error instanceof Cerebras.RateLimitError;
+    logProviderEvent(
+      isRateLimit
+        ? "Rate limit hit, falling back to OpenRouter"
+        : "Cerebras error, falling back to OpenRouter",
+      { error }
+    );
 
-      return {
-        data: response.text,
-        metadata: {
-          provider: "openrouter",
-          model: FALLBACK_MODEL,
-          usedFallback: true,
-        },
-      };
-    }
-    
-    logProviderEvent("Cerebras error, not rate limit", { error });
-    throw error;
+    const { generateText } = await import("ai");
+    const response = await generateText({
+      model: openrouter.chat(FALLBACK_MODEL),
+      messages: messages.map((m) => ({
+        role: m.role as "system" | "user" | "assistant",
+        content: m.content,
+      })),
+      temperature: options?.temperature ?? 0.7,
+      maxOutputTokens: options?.max_tokens ?? 2000,
+    });
+
+    return {
+      data: response.text,
+      metadata: {
+        provider: "openrouter",
+        model: FALLBACK_MODEL,
+        usedFallback: true,
+      },
+    };
   }
 }
 
