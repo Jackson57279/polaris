@@ -4,7 +4,10 @@ import { requireAuth } from "@/lib/stack-auth-api";
 import { ConvexHttpClient } from "convex/browser";
 
 import { inngest } from "@/inngest/client";
+import { checkAccess, trackUsage } from "@/lib/autumn-server";
 import { api } from "../../../../../convex/_generated/api";
+
+const FEATURE_ID = 'projects';
 
 const requestSchema = z.object({
   description: z.string().min(10),
@@ -48,11 +51,28 @@ export async function POST(request: Request) {
   const name = projectName || `Generated Project ${Date.now()}`;
 
   try {
+    const checkResult = await checkAccess({
+      customer_id: userId,
+      feature_id: FEATURE_ID,
+    });
+
+    if (!checkResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Project limit reached. Please upgrade to Pro for unlimited projects.',
+          currentUsage: checkResult.usage || 0,
+          limit: checkResult.included_usage || 0,
+        },
+        { status: 403 }
+      );
+    }
+
     const projectId = await convex.mutation(api.projects.create, {
       name,
     });
 
-    // Trigger background job for AI generation (returns immediately)
+    await trackUsage(userId, FEATURE_ID, 1);
+
     await inngest.send({
       name: "project/generate",
       data: {

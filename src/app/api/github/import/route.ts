@@ -4,8 +4,11 @@ import { requireAuth } from "@/lib/stack-auth-api";
 import { ConvexHttpClient } from "convex/browser";
 
 import { createOctokit, getGithubToken, importRepository, parseGitHubUrl } from "@/lib/github";
+import { checkAccess, trackUsage } from "@/lib/autumn-server";
 
 import { api } from "../../../../../convex/_generated/api";
+
+const FEATURE_ID = 'projects';
 
 const requestSchema = z.object({
   repoUrl: z.string().url(),
@@ -63,6 +66,22 @@ export async function POST(request: Request) {
   const octokit = createOctokit(token);
 
   try {
+    const checkResult = await checkAccess({
+      customer_id: userId,
+      feature_id: FEATURE_ID,
+    });
+
+    if (!checkResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Project limit reached. Please upgrade to Pro for unlimited projects.',
+          currentUsage: checkResult.usage || 0,
+          limit: checkResult.included_usage || 0,
+        },
+        { status: 403 }
+      );
+    }
+
     const projectId = await convex.mutation(api.projects.create, {
       name: repo,
     });
@@ -91,6 +110,8 @@ export async function POST(request: Request) {
       projectId,
       status: "completed",
     });
+
+    await trackUsage(userId, FEATURE_ID, 1);
 
     return NextResponse.json({
       success: true,

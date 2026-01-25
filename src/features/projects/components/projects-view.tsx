@@ -16,10 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 
 import { ProjectsList } from "./projects-list";
-import { useCreateProject } from "../hooks/use-projects";
 import { ProjectsCommandDialog } from "./projects-command-dialog";
 import { GitHubImportDialog } from "./github-import-dialog";
 import { AIGenerateDialog } from "./ai-generate-dialog";
+import { ProjectUsageBanner } from "./project-usage-banner";
 import { useUser } from "@stackframe/stack";
 import { UnauthenticatedView } from "@/features/auth/components/unauthenticated-view";
 
@@ -30,7 +30,6 @@ const font = Poppins({
 
 export const ProjectsView = () => {
   const user = useUser();
-  const createProject = useCreateProject();
 
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -94,6 +93,8 @@ export const ProjectsView = () => {
           </div>
 
           <div className="flex flex-col gap-4 w-full">
+            <ProjectUsageBanner />
+            
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"

@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/purity */
 
 import { useMutation, useQuery } from "convex/react";
+import { useCallback, useState } from "react";
 
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -20,27 +21,30 @@ export const useProjectsPartial = (limit: number) => {
 };
 
 export const useCreateProject = () => {
-  return useMutation(api.projects.create).withOptimisticUpdate(
-    (localStore, args) => {
-      const existingProjects = localStore.getQuery(api.projects.get);
+  const [isLoading, setIsLoading] = useState(false);
 
-      if (existingProjects !== undefined) {
-        const now = Date.now();
-        const newProject = {
-          _id: crypto.randomUUID() as Id<"projects">,
-          _creationTime: now,
-          name: args.name,
-          ownerId: "anonymous",
-          updatedAt: now,
-        };
+  const createProject = useCallback(async (name: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/projects/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
 
-        localStore.setQuery(api.projects.get, {}, [
-          newProject,
-          ...existingProjects,
-        ]);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create project');
       }
+
+      return data.projectId as Id<"projects">;
+    } finally {
+      setIsLoading(false);
     }
-  )
+  }, []);
+
+  return { createProject, isLoading };
 };
 
 export const useRenameProject = () => {
@@ -81,30 +85,26 @@ export const useRenameProject = () => {
 };
 
 export const useDeleteProject = () => {
-  return useMutation(api.projects.deleteProject).withOptimisticUpdate(
-    (localStore, args) => {
-      const existingProjects = localStore.getQuery(api.projects.get);
+  const [isLoading, setIsLoading] = useState(false);
 
-      if (existingProjects !== undefined) {
-        localStore.setQuery(
-          api.projects.get,
-          {},
-          existingProjects.filter((project) => project._id !== args.id)
-        );
+  const deleteProject = useCallback(async (args: { id: Id<"projects"> }) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/projects/delete?projectId=${args.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete project');
       }
 
-      const existingProjectsPartial = localStore.getQuery(
-        api.projects.getPartial,
-        { limit: 10 }
-      );
-
-      if (existingProjectsPartial !== undefined) {
-        localStore.setQuery(
-          api.projects.getPartial,
-          { limit: 10 },
-          existingProjectsPartial.filter((project) => project._id !== args.id)
-        );
-      }
+      return data;
+    } finally {
+      setIsLoading(false);
     }
-  )
+  }, []);
+
+  return { deleteProject, isLoading };
 };

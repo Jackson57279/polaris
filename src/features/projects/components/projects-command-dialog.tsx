@@ -54,7 +54,7 @@ export const ProjectsCommandDialog = ({
 }: ProjectsCommandDialogProps) => {
   const router = useRouter();
   const projects = useProjects();
-  const deleteProject = useDeleteProject();
+  const { deleteProject, isLoading: isDeleting } = useDeleteProject();
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
   const handleSelect = (projectId: string) => {
@@ -62,11 +62,15 @@ export const ProjectsCommandDialog = ({
     onOpenChange(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (projectToDelete) {
-      deleteProject({ id: projectToDelete as Id<"projects"> });
-      setProjectToDelete(null);
-      onOpenChange(false);
+      try {
+        await deleteProject({ id: projectToDelete as Id<"projects"> });
+        setProjectToDelete(null);
+        onOpenChange(false);
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+      }
     }
   };
 
@@ -124,12 +128,20 @@ export const ProjectsCommandDialog = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

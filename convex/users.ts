@@ -123,8 +123,23 @@ export const updateSubscription = mutation({
   args: {
     stackUserId: v.string(),
     autumnCustomerId: v.optional(v.string()),
-    subscriptionStatus: v.optional(v.string()),
-    subscriptionTier: v.optional(v.string()),
+    subscriptionStatus: v.optional(
+      v.union(
+        v.literal("free"),
+        v.literal("trialing"),
+        v.literal("active"),
+        v.literal("paused"),
+        v.literal("canceled"),
+        v.literal("past_due")
+      )
+    ),
+    subscriptionTier: v.optional(
+      v.union(
+        v.literal("free"),
+        v.literal("pro_monthly"),
+        v.literal("pro_yearly")
+      )
+    ),
     subscriptionPlanId: v.optional(v.string()),
     trialEndsAt: v.optional(v.number()),
     projectLimit: v.optional(v.number()),
@@ -142,8 +157,8 @@ export const updateSubscription = mutation({
     const updateData: {
       updatedAt: number;
       autumnCustomerId?: string;
-      subscriptionStatus?: string;
-      subscriptionTier?: string;
+      subscriptionStatus?: "free" | "trialing" | "active" | "paused" | "canceled" | "past_due";
+      subscriptionTier?: "free" | "pro_monthly" | "pro_yearly";
       subscriptionPlanId?: string;
       trialEndsAt?: number;
       projectLimit?: number;

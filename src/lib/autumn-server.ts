@@ -54,3 +54,16 @@ export async function checkAccess(params: CheckParams) {
   }
   return result.data;
 }
+
+export async function trackUsage(customerId: string, featureId: string, value = 1) {
+  const autumn = getAutumn();
+  const result = await autumn.track({
+    customer_id: customerId,
+    feature_id: featureId,
+    value,
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  return result.data;
+}
