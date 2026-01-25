@@ -475,6 +475,38 @@ export const cancelMessage = mutation({
   },
 });
 
+export const streamMessageContent = mutation({
+  args: {
+    internalKey: v.string(),
+    messageId: v.id("messages"),
+    content: v.string(),
+    isComplete: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    // Only update if message is still processing (not cancelled)
+    if (message.status === "cancelled") {
+      return;
+    }
+
+    await ctx.db.patch(args.messageId, {
+      content: args.content,
+      status: args.isComplete ? "completed" : "processing",
+    });
+
+    // Update conversation's updatedAt
+    await ctx.db.patch(message.conversationId, {
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const updateProjectImportStatus = mutation({
   args: {
     internalKey: v.string(),

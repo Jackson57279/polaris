@@ -1,6 +1,7 @@
 import {
   asSchema,
   generateText,
+  streamText,
   stepCountIs,
   type ModelMessage,
   type Tool,
@@ -345,4 +346,65 @@ export async function generateTextWithToolsPreferCerebras<TOOLS extends ToolSet>
       usedFallback: true,
     };
   }
+}
+
+export interface StreamTextWithToolsOptions<TOOLS extends ToolSet = ToolSet> {
+  system?: string;
+  messages: Array<ModelMessage>;
+  tools: TOOLS;
+  temperature?: number;
+  maxTokens?: number;
+  maxSteps?: number;
+  toolChoice?: ToolChoice<TOOLS> | ((step: number) => ToolChoice<TOOLS>);
+  onTextChunk?: (text: string, fullText: string) => Promise<void> | void;
+  onStepFinish?: (options: {
+    text?: string;
+    toolCalls?: unknown[];
+    toolResults?: unknown[];
+  }) => Promise<void> | void;
+}
+
+export async function streamTextWithToolsPreferCerebras<TOOLS extends ToolSet>(
+  options: StreamTextWithToolsOptions<TOOLS>
+): Promise<GenerateTextWithToolsResult> {
+  const toolChoiceFn =
+    typeof options.toolChoice === "function" ? options.toolChoice : undefined;
+
+  logProviderEvent("Starting streaming with OpenRouter", {
+    model: DEFAULT_OPENROUTER_MODEL,
+  });
+
+  type ToolChoiceFn = (step: number) => ToolChoice<TOOLS>;
+  const result = streamText({
+    model: getOpenRouterModel(DEFAULT_OPENROUTER_MODEL),
+    system: options.system,
+    messages: options.messages,
+    tools: options.tools,
+    toolChoice: toolChoiceFn
+      ? undefined
+      : (options.toolChoice as Exclude<typeof options.toolChoice, ToolChoiceFn>),
+    prepareStep: toolChoiceFn
+      ? async ({ stepNumber }) => ({ toolChoice: toolChoiceFn(stepNumber) })
+      : undefined,
+    temperature: options.temperature ?? 0.7,
+    maxOutputTokens: options.maxTokens ?? 2000,
+    stopWhen: stepCountIs(options.maxSteps ?? 10),
+    onStepFinish: async ({ text, toolCalls, toolResults }) => {
+      await options.onStepFinish?.({ text, toolCalls, toolResults });
+    },
+  });
+
+  let fullText = "";
+
+  for await (const chunk of result.textStream) {
+    fullText += chunk;
+    await options.onTextChunk?.(chunk, fullText);
+  }
+
+  return {
+    text: fullText,
+    provider: "openrouter",
+    model: DEFAULT_OPENROUTER_MODEL,
+    usedFallback: false,
+  };
 }
