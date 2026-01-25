@@ -230,60 +230,96 @@ async function generateWithCerebrasTools<TOOLS extends ToolSet>(
     const executedToolCalls: unknown[] = [];
     const executedToolResults: unknown[] = [];
 
+    // Helper to extract file path from tool arguments
+    const getFilePath = (args: unknown): string | null => {
+      if (typeof args === "object" && args !== null) {
+        const obj = args as Record<string, unknown>;
+        return (obj.path as string) || (obj.filePath as string) || null;
+      }
+      return null;
+    };
+
+    // Group tools by dependency (same file path = dependent)
+    const toolGroups: OpenAIToolCall[][] = [];
+    const usedPaths = new Set<string>();
+    
     for (const toolCall of toolCalls) {
-      const toolCallId = toolCall.id;
-      const toolName = toolCall.function?.name;
-      const tool = toolName ? options.tools[toolName] : undefined;
-
       const args = parseToolArguments(toolCall.function?.arguments);
-
-      executedToolCalls.push({ toolCallId, toolName, args });
-
-      if (!tool) {
-        const error = `Tool not found: ${toolName}`;
-        executedToolResults.push({ toolCallId, result: error });
-        history.push({ role: "tool", tool_call_id: toolCallId, content: error });
-        continue;
+      const filePath = getFilePath(args);
+      
+      // If tool operates on a file we've already seen, it's dependent
+      if (filePath && usedPaths.has(filePath)) {
+        // Add to last group (sequential with previous operation on same file)
+        if (toolGroups.length > 0) {
+          toolGroups[toolGroups.length - 1].push(toolCall);
+        } else {
+          toolGroups.push([toolCall]);
+        }
+      } else {
+        // Independent tool - can run in parallel with others
+        toolGroups.push([toolCall]);
+        if (filePath) usedPaths.add(filePath);
       }
+    }
 
-      const execute = getToolExecute(tool);
+    // Execute tool groups (parallel within group, sequential between groups)
+    for (const group of toolGroups) {
+      const groupPromises = group.map(async (toolCall) => {
+        const toolCallId = toolCall.id;
+        const toolName = toolCall.function?.name;
+        const tool = toolName ? options.tools[toolName] : undefined;
+        const args = parseToolArguments(toolCall.function?.arguments);
 
-      if (!execute) {
-        const error = `Tool not executable: ${toolName}`;
-        executedToolResults.push({ toolCallId, result: error });
-        history.push({ role: "tool", tool_call_id: toolCallId, content: error });
-        continue;
-      }
+        executedToolCalls.push({ toolCallId, toolName, args });
 
-      try {
-        const rawResult = execute(args, {
-          toolCallId,
-          messages: options.messages,
-        });
+        if (!tool) {
+          const error = `Tool not found: ${toolName}`;
+          return { toolCallId, result: error, isError: true };
+        }
 
-        const result = await resolveToolResult(rawResult);
+        const execute = getToolExecute(tool);
 
+        if (!execute) {
+          const error = `Tool not executable: ${toolName}`;
+          return { toolCallId, result: error, isError: true };
+        }
+
+        try {
+          const rawResult = execute(args, {
+            toolCallId,
+            messages: options.messages,
+          });
+
+          const result = await resolveToolResult(rawResult);
+          return { toolCallId, result, isError: false };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          return { toolCallId, result: { error: errorMessage }, isError: true };
+        }
+      });
+
+      // Execute group in parallel
+      const groupResults = await Promise.all(groupPromises);
+
+      // Process results and update history
+      for (const { toolCallId, result, isError } of groupResults) {
         executedToolResults.push({ toolCallId, result });
 
         let toolContent: string;
-        try {
-          toolContent = typeof result === "string" ? result : JSON.stringify(result);
-        } catch {
-          toolContent = "[unserializable tool result]";
+        if (isError) {
+          toolContent = typeof result === "string" ? result : `Error: ${JSON.stringify(result)}`;
+        } else {
+          try {
+            toolContent = typeof result === "string" ? result : JSON.stringify(result);
+          } catch {
+            toolContent = "[unserializable tool result]";
+          }
         }
 
         history.push({
           role: "tool",
           tool_call_id: toolCallId,
           content: toolContent,
-        });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        executedToolResults.push({ toolCallId, result: { error: errorMessage } });
-        history.push({
-          role: "tool",
-          tool_call_id: toolCallId,
-          content: `Error: ${errorMessage}`,
         });
       }
     }
