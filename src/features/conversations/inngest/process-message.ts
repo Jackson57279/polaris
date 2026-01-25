@@ -5,6 +5,7 @@ import { createFileTools } from "@/lib/ai-tools";
 import { createLSPTools } from "@/lib/lsp-tools";
 import { createSearchTools } from "@/lib/search-tools";
 import { createTerminalTools } from "@/lib/terminal-tools";
+import { createContextTools } from "@/lib/context-tools";
 import { convex } from "@/lib/convex-client";
 import { streamTextWithToolsPreferCerebras } from "@/lib/generate-text-with-tools";
 
@@ -37,11 +38,15 @@ Code Search:
 - searchCodebase: AST-aware search for imports, functions, classes, variables, exports, calls
 - findFilesByPattern: Find files by name using glob patterns
 
+Context & Relevance:
+- getRelevantFiles: Find files most relevant to a query using import analysis, symbol matching, edit history, and file proximity
+
 Terminal:
 - executeCommand: Execute safe terminal commands (npm, bun, git, node, tsc, eslint, prettier, test, npx)
 
 When the user asks you to create, modify, or delete files, use the file management tools.
 When you need to understand code structure or find specific symbols, use the LSP and search tools.
+When you need to find related files for context, use the context tools.
 When you need to run build commands or tests, use the terminal tool.
 When writing code, ensure it is well-structured, follows best practices, and includes proper error handling.
 
@@ -91,17 +96,19 @@ export const processMessage = inngest.createFunction(
       });
     });
 
-    const fileTools = createFileTools(context.projectId, internalKey);
-    const lspTools = createLSPTools(context.projectId, internalKey);
-    const searchTools = createSearchTools(context.projectId, internalKey);
-    const terminalTools = createTerminalTools(context.projectId, internalKey);
+     const fileTools = createFileTools(context.projectId, internalKey);
+     const lspTools = createLSPTools(context.projectId, internalKey);
+     const searchTools = createSearchTools(context.projectId, internalKey);
+     const terminalTools = createTerminalTools(context.projectId, internalKey);
+     const contextTools = createContextTools(context.projectId, internalKey);
 
-    const tools = {
-      ...fileTools,
-      ...lspTools,
-      ...searchTools,
-      ...terminalTools,
-    };
+     const tools = {
+       ...fileTools,
+       ...lspTools,
+       ...searchTools,
+       ...terminalTools,
+       ...contextTools,
+     };
 
     let lastStreamUpdate = 0;
     const STREAM_THROTTLE_MS = 100;
