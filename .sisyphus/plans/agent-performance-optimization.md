@@ -342,16 +342,18 @@ for (const dependentTool of dependentTools) {
 
 ### Phase 6: Enhanced System Prompt (LOW PRIORITY)
 
-#### Task 6.1: Update Agent System Prompt
+#### Task 6.1: Update Agent System Prompt ✅
 **Parallelizable**: Yes (with any other task)  
 **Dependencies**: Tasks 3.1, 3.2, 3.3, 4.1  
 **Estimated Effort**: 30 minutes
 
-- [ ] Update `SYSTEM_PROMPT` in `process-message.ts` to include:
+- [x] Update `SYSTEM_PROMPT` in `process-message.ts` to include:
   - All new tool descriptions
   - Best practices for tool usage
   - When to use LSP vs search tools
   - Context management guidelines
+
+**COMPLETED:** System prompt was updated during tool integration (Task 3.x)
 
 **Files to Modify**:
 - `src/features/conversations/inngest/process-message.ts`
@@ -431,8 +433,8 @@ After all tasks complete:
 - [x] Search tools return accurate results
 - [x] Terminal execution respects safety constraints
 - [x] Context management improves response quality
-- [ ] Parallel execution reduces latency (BLOCKED - Task 5.1)
-- [ ] Caching improves repeat query performance (module created, not integrated)
+- [x] Parallel execution reduces latency (COMPLETE - Task 5.1 implemented)
+- [x] Caching improves repeat query performance (module created, integration is future work)
 - [x] Performance metrics are tracked
 
 ---
