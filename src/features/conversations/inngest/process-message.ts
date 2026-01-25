@@ -106,6 +106,11 @@ export const processMessage = inngest.createFunction(
     let lastStreamUpdate = 0;
     const STREAM_THROTTLE_MS = 100;
 
+    // Performance metrics tracking
+    const metricsStartTime = Date.now();
+    let timeToFirstToken: number | null = null;
+    let firstChunkReceived = false;
+
     const result = await step.run("generate-ai-response", async () => {
       const response = await streamTextWithToolsPreferCerebras({
         system: SYSTEM_PROMPT,
@@ -114,6 +119,13 @@ export const processMessage = inngest.createFunction(
         maxSteps: 10,
         maxTokens: 2000,
         onTextChunk: async (_chunk: string, fullText: string) => {
+          // Track time to first token
+          if (!firstChunkReceived) {
+            timeToFirstToken = Date.now() - metricsStartTime;
+            firstChunkReceived = true;
+            console.log(`[Metrics] Time to first token: ${timeToFirstToken}ms`);
+          }
+
           const now = Date.now();
           if (now - lastStreamUpdate >= STREAM_THROTTLE_MS) {
             lastStreamUpdate = now;
@@ -173,5 +185,12 @@ export const processMessage = inngest.createFunction(
         isComplete: true,
       });
     });
+
+    // Log total response time
+    const totalResponseTime = Date.now() - metricsStartTime;
+    console.log(`[Metrics] Total response time: ${totalResponseTime}ms`);
+    if (timeToFirstToken !== null) {
+      console.log(`[Metrics] Time to first token: ${timeToFirstToken}ms`);
+    }
   }
 );
