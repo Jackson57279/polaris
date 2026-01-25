@@ -112,7 +112,7 @@ export const ProjectIdView = ({
           "absolute inset-0",
           activeView === "preview" ? "visible" : "invisible"
         )}>
-          <WebContainerProvider>
+          <WebContainerProvider projectId={projectId}>
             <Allotment vertical defaultSizes={[600, 400]}>
               <Allotment.Pane>
                 <PreviewFrame />

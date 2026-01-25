@@ -7,7 +7,6 @@ import { CodeEditor } from "./code-editor";
 import { useEditor } from "../hooks/use-editor";
 import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
-import { GenerationLogPanel } from "@/features/projects/components/generation-log-panel";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 const DEBOUNCE_MS = 1500;
@@ -65,12 +64,11 @@ export const EditorView = ({ projectId }: { projectId: Id<"projects"> }) => {
               }}
             />
           )}
-          {isActiveFileBinary && (
-            <p>TODO: Implement binary preview</p>
-          )}
-        </div>
-        <GenerationLogPanel projectId={projectId} />
-      </div>
+           {isActiveFileBinary && (
+             <p>TODO: Implement binary preview</p>
+           )}
+         </div>
+       </div>
     </div>
   );
 };
