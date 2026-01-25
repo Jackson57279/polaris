@@ -29,7 +29,7 @@ src/
 | **UI Components** | `src/components/ui/` | shadcn/ui components |
 | **AI Elements** | `src/components/ai-elements/` | AI-specific UI components |
 | **Background Jobs** | `src/inngest/` | Client for Inngest workflows |
-| **Utilities** | `src/lib/` | Helpers, integrations (Paddle, GitHub, Firecrawl) |
+| **Utilities** | `src/lib/` | Helpers, integrations (Autumn, GitHub, Firecrawl) |
 
 ## CONVENTIONS
 - **Feature organization**: `src/features/` for domain logic (auth, editor, projects, conversations)

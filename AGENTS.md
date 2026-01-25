@@ -48,7 +48,7 @@ polaris/
 | verifyAuth | Function | `convex/auth.ts` | User authentication check |
 | createProject | Mutation | `convex/projects.ts` | Create new project |
 
-## PADDLE INTEGRATION
+## AUTUMN INTEGRATION
 
 ### Subscription Tiers
 | Tier | Projects | Price | Status |
@@ -57,17 +57,18 @@ polaris/
 | Pro Monthly | Unlimited | $29/mo | `active`/`trialing` |
 | Pro Yearly | Unlimited | $290/yr | `active`/`trialing` |
 
-### Webhook Events Handled
-- `subscription.created`, `subscription.activated`, `subscription.trialing`
-- `subscription.updated`, `subscription.paused`/`resumed`/`canceled`
-- `customer.created`
+### Billing Flow
+- Checkout, upgrades, and downgrades handled by Autumn (Stripe)
+- Billing portal managed by Autumn customer portal
+- Subscription status synced from Autumn APIs
 
 ### Environment Variables
 ```env
-# Paddle
-PADDLE_API_KEY=, PADDLE_CLIENT_TOKEN=, PADDLE_WEBHOOK_SECRET=
-NEXT_PUBLIC_PADDLE_ENVIRONMENT=production
-NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID=, NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID=
+# Autumn
+AUTUMN_SECRET_KEY=
+AUTUMN_API_URL= # Optional override (defaults to production)
+NEXT_PUBLIC_AUTUMN_PRO_MONTHLY_PRODUCT_ID=
+NEXT_PUBLIC_AUTUMN_PRO_YEARLY_PRODUCT_ID=
 
 # AI Provider (choose one)
 ANTHROPIC_API_KEY=  # Claude Sonnet 4 (preferred)

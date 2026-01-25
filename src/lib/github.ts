@@ -127,6 +127,23 @@ export async function exportToRepository(
   });
 }
 
+export async function checkRepoExists(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<{ exists: boolean; error?: string }> {
+  try {
+    await octokit.repos.get({ owner, repo });
+    return { exists: true };
+  } catch (error) {
+    if (error instanceof Error && "status" in error && error.status === 404) {
+      return { exists: false };
+    }
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { exists: false, error: errorMessage };
+  }
+}
+
 export function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) return null;

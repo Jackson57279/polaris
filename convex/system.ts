@@ -67,13 +67,19 @@ export const updateMessageContent = mutation({
     internalKey: v.string(),
     messageId: v.id("messages"),
     content: v.string(),
+    status: v.optional(
+      v.union(
+        v.literal("completed"),
+        v.literal("failed")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     validateInternalKey(args.internalKey);
 
     await ctx.db.patch(args.messageId, {
       content: args.content,
-      status: "completed" as const,
+      status: args.status ?? "completed",
     });
   },
 });

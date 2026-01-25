@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckIcon, Loader2Icon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function SubscriptionManager() {
@@ -15,6 +15,22 @@ export function SubscriptionManager() {
   const subscription = useQuery(api.users.getSubscription, {});
   const billingStatus = useQuery(api.users.getBillingStatus, {});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const syncSubscription = async () => {
+      try {
+        await fetch('/api/autumn/sync', { method: 'POST' });
+      } catch (error) {
+        console.error('Subscription sync error:', error);
+      }
+    };
+
+    void syncSubscription();
+  }, [user]);
 
   const handleUpgrade = async (tier: 'pro_monthly' | 'pro_yearly', useTrial: boolean = false) => {
     if (!user) {
@@ -25,7 +41,7 @@ export function SubscriptionManager() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/paddle/checkout', {
+      const response = await fetch('/api/autumn/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tier, useTrial }),
@@ -36,8 +52,14 @@ export function SubscriptionManager() {
       }
 
       const { checkoutUrl } = await response.json();
-      
-      // Open Paddle checkout
+
+      if (!checkoutUrl) {
+        await fetch('/api/autumn/sync', { method: 'POST' });
+        toast.success('Subscription updated');
+        setIsLoading(false);
+        return;
+      }
+
       window.location.href = checkoutUrl;
     } catch (error) {
       console.error('Upgrade error:', error);
@@ -47,20 +69,13 @@ export function SubscriptionManager() {
   };
 
   const handleManageBilling = async () => {
-    if (!billingStatus?.paddleCustomerId) {
-      toast.error("No billing account found");
-      return;
-    }
-
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/paddle/portal', {
+      const response = await fetch('/api/autumn/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          customerId: billingStatus.paddleCustomerId 
-        }),
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {

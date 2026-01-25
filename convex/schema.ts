@@ -9,8 +9,7 @@ export default defineSchema({
     stackUserId: v.string(), // Stack Auth user ID (migrated from clerkId)
     clerkId: v.optional(v.string()), // Legacy - for migration period
     email: v.string(),
-    paddleCustomerId: v.optional(v.string()),
-    paddleSubscriptionId: v.optional(v.string()),
+    autumnCustomerId: v.optional(v.string()),
     subscriptionStatus: v.optional(
       v.union(
         v.literal("free"),
@@ -36,8 +35,7 @@ export default defineSchema({
   })
     .index("by_stack_user", ["stackUserId"])
     .index("by_clerk", ["clerkId"]) // Keep for migration period
-    .index("by_paddle_customer", ["paddleCustomerId"])
-    .index("by_paddle_subscription", ["paddleSubscriptionId"]),
+    .index("by_autumn_customer", ["autumnCustomerId"]),
 
   projects: defineTable({
     name: v.string(),
@@ -91,7 +89,8 @@ export default defineSchema({
       v.union(
         v.literal("processing"),
         v.literal("completed"),
-        v.literal("cancelled")
+        v.literal("cancelled"),
+        v.literal("failed")
       )
     ),
     toolCalls: v.optional(

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Polaris is a cloud IDE inspired by Cursor AI, built with Next.js 16, React 19, and TypeScript. The project supports **dual deployment modes**: browser-based (with WebContainer) and Electron desktop app (with native file system). Key features include AI-powered code editing, real-time collaboration, conversation-based AI assistant, and in-browser/native code execution.
 
-**Current Branch Context:** `electron-desktop-integration-polaris-ide` - This branch introduces dual-mode Polaris IDE with standalone Next.js server, IPC/native FS, auto-updater, and desktop CI/CD.
+**Current Branch Context:** `main` - This branch introduces dual-mode Polaris IDE with standalone Next.js server, IPC/native FS, auto-updater, and desktop CI/CD.
 
 ## Development Commands
 
@@ -80,7 +80,7 @@ npm run test:electron       # Vitest tests for Electron-specific code
 polaris/
 ├── src/
 │   ├── app/                      # Next.js App Router
-│   │   ├── api/                  # API routes (messages, suggestion, quick-edit, github, paddle)
+│   │   ├── api/                  # API routes (messages, suggestion, quick-edit, github, billing)
 │   │   └── projects/[projectId]/ # Project IDE page
 │   ├── components/
 │   │   ├── ai-elements/          # AI conversation UI (message, reasoning, tool, code-block)

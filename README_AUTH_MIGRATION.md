@@ -91,17 +91,14 @@ NEXT_PUBLIC_CONVEX_URL=xxx
 CONVEX_DEPLOYMENT=xxx
 POLARIS_CONVEX_INTERNAL_KEY=xxx
 
-# Paddle (keep existing)
-PADDLE_API_KEY=xxx
-PADDLE_WEBHOOK_SECRET=xxx
-NEXT_PUBLIC_PADDLE_ENVIRONMENT=production
-
-# Paddle Price IDs (keep existing)
-NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID=pri_xxx
-NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID=pri_xxx
+# Autumn (billing)
+AUTUMN_SECRET_KEY=xxx
+AUTUMN_API_URL=xxx
+NEXT_PUBLIC_AUTUMN_PRO_MONTHLY_PRODUCT_ID=prod_xxx
+NEXT_PUBLIC_AUTUMN_PRO_YEARLY_PRODUCT_ID=prod_xxx
 ```
 
-See [.env.example](.env.example) for complete list.
+See `README.md` for the complete list.
 
 ## ✅ Testing Checklist
 

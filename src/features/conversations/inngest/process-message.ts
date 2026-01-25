@@ -72,6 +72,7 @@ export const processMessage = inngest.createFunction(
             messageId,
             content:
               "My apologies, I encountered an error while processing your request. Let me know if you need anything else!",
+            status: "failed",
           });
         });
       }

@@ -2,6 +2,7 @@ import ky from "ky";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { 
+  AlertCircleIcon,
   CopyIcon, 
   HistoryIcon, 
   LoaderIcon, 
@@ -201,6 +202,14 @@ export const ConversationSidebar = ({
                     <div className="flex items-center gap-1 mt-2 text-muted-foreground text-xs">
                       <LoaderIcon className="size-3 animate-spin" />
                       <span>Generating...</span>
+                    </div>
+                  </div>
+                ) : message.status === "failed" ? (
+                  <div>
+                    <MessageResponse>{message.content}</MessageResponse>
+                    <div className="flex items-center gap-1 mt-2 text-destructive text-xs">
+                      <AlertCircleIcon className="size-3" />
+                      <span>Failed</span>
                     </div>
                   </div>
                 ) : (

@@ -7,7 +7,7 @@ interface PricingPlan {
   name: string;
   tier: 'free' | 'pro_monthly' | 'pro_yearly';
   price: number;
-  priceId: string;
+  productId: string;
   interval: 'month' | 'year';
   features: string[];
   popular?: boolean;
@@ -18,7 +18,7 @@ const plans: PricingPlan[] = [
     name: 'Free',
     tier: 'free',
     price: 0,
-    priceId: '',
+    productId: '',
     interval: 'month',
     features: [
       '10 projects',
@@ -31,7 +31,7 @@ const plans: PricingPlan[] = [
     name: 'Pro Monthly',
     tier: 'pro_monthly',
     price: 29,
-    priceId: process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID || '',
+    productId: process.env.NEXT_PUBLIC_AUTUMN_PRO_MONTHLY_PRODUCT_ID || '',
     interval: 'month',
     features: [
       'Unlimited projects',
@@ -47,7 +47,7 @@ const plans: PricingPlan[] = [
     name: 'Pro Yearly',
     tier: 'pro_yearly',
     price: 290,
-    priceId: process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID || '',
+    productId: process.env.NEXT_PUBLIC_AUTUMN_PRO_YEARLY_PRODUCT_ID || '',
     interval: 'year',
     features: [
       'Everything in Pro Monthly',
@@ -63,12 +63,12 @@ export function PricingPlans() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handleSubscribe = async (plan: PricingPlan) => {
-    if (!plan.priceId) return;
+    if (!plan.productId) return;
     
     setIsProcessing(plan.tier);
     
     try {
-      const response = await fetch('/api/paddle/checkout', {
+      const response = await fetch('/api/autumn/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -82,6 +82,11 @@ export function PricingPlans() {
       }
 
       const { checkoutUrl } = await response.json();
+      if (!checkoutUrl) {
+        await fetch('/api/autumn/sync', { method: 'POST' });
+        setIsProcessing(null);
+        return;
+      }
       window.location.href = checkoutUrl;
     } catch (error) {
       console.error('Checkout error:', error);
@@ -163,7 +168,7 @@ export function PricingPlans() {
               >
                 Current Plan
               </button>
-            ) : plan.priceId ? (
+            ) : plan.productId ? (
               <button
                 onClick={() => handleSubscribe(plan)}
                 disabled={isProcessing === plan.tier}

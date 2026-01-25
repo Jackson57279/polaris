@@ -117,13 +117,12 @@ export const getProjectCount = query({
 });
 
 /**
- * Update user subscription from Paddle webhook
+ * Update user subscription from Autumn sync
  */
 export const updateSubscription = mutation({
   args: {
     stackUserId: v.string(),
-    paddleCustomerId: v.optional(v.string()),
-    paddleSubscriptionId: v.optional(v.string()),
+    autumnCustomerId: v.optional(v.string()),
     subscriptionStatus: v.optional(v.string()),
     subscriptionTier: v.optional(v.string()),
     subscriptionPlanId: v.optional(v.string()),
@@ -140,15 +139,20 @@ export const updateSubscription = mutation({
       throw new Error('User not found');
     }
 
-    const updateData: any = {
+    const updateData: {
+      updatedAt: number;
+      autumnCustomerId?: string;
+      subscriptionStatus?: string;
+      subscriptionTier?: string;
+      subscriptionPlanId?: string;
+      trialEndsAt?: number;
+      projectLimit?: number;
+    } = {
       updatedAt: Date.now(),
     };
 
-    if (args.paddleCustomerId !== undefined) {
-      updateData.paddleCustomerId = args.paddleCustomerId;
-    }
-    if (args.paddleSubscriptionId !== undefined) {
-      updateData.paddleSubscriptionId = args.paddleSubscriptionId;
+    if (args.autumnCustomerId !== undefined) {
+      updateData.autumnCustomerId = args.autumnCustomerId;
     }
     if (args.subscriptionStatus !== undefined) {
       updateData.subscriptionStatus = args.subscriptionStatus;
@@ -316,8 +320,7 @@ export const getBillingStatus = query({
       projectLimit: user.projectLimit,
       projectCount: projectCount.length,
       remainingProjects: user.projectLimit === -1 ? 'unlimited' : user.projectLimit - projectCount.length,
-      paddleCustomerId: user.paddleCustomerId,
-      paddleSubscriptionId: user.paddleSubscriptionId,
+      autumnCustomerId: user.autumnCustomerId,
       createdAt: user.createdAt,
     };
   },
@@ -339,29 +342,14 @@ export const getUserByStackUserId = query({
 });
 
 /**
- * Get user by Paddle Customer ID
+ * Get user by Autumn Customer ID
  */
-export const getUserByPaddleCustomerId = query({
-  args: { paddleCustomerId: v.string() },
+export const getUserByAutumnCustomerId = query({
+  args: { autumnCustomerId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query('users')
-      .withIndex('by_paddle_customer', (q) => q.eq('paddleCustomerId', args.paddleCustomerId))
-      .first();
-
-    return user;
-  },
-});
-
-/**
- * Get user by Paddle Subscription ID
- */
-export const getUserByPaddleSubscriptionId = query({
-  args: { paddleSubscriptionId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_paddle_subscription', (q) => q.eq('paddleSubscriptionId', args.paddleSubscriptionId))
+      .withIndex('by_autumn_customer', (q) => q.eq('autumnCustomerId', args.autumnCustomerId))
       .first();
 
     return user;

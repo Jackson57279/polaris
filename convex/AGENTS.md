@@ -28,7 +28,7 @@ convex/
 |------|----------|-------|
 | **Authentication** | `auth.ts`, `auth.config.ts` | Stack Auth integration, user verification |
 | **Database Schema** | `schema.ts` | Tables: users, projects, files, conversations, messages |
-| **User Operations** | `users.ts` | Subscription status, project limits, Paddle integration |
+| **User Operations** | `users.ts` | Subscription status, project limits, Autumn integration |
 | **Project Operations** | `projects.ts` | CRUD for projects, ownership validation |
 | **File System** | `files.ts` | File/folder operations, path resolution, recursive deletion |
 | **Conversations** | `conversations.ts`, `messages.ts` | Chat management, message retrieval |
