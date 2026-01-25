@@ -361,3 +361,64 @@ This is a 180% increase in agent capabilities!
 - Consistent signature across all tool creators
 - Easy to merge with spread operator
 - No naming conflicts between tool sets
+
+## 2026-01-25 - Task 4.1: Context Tools Module (Smart File Relevance)
+
+### Implementation Details
+
+**File Created:** `src/lib/context-tools.ts`
+
+**Tool Implemented:**
+1. `getRelevantFiles` - Find files most relevant to a query or current context
+   - Accepts: query, currentFile (optional), maxFiles (default: 5)
+   - Returns: Ranked list of files with scores and reasons
+
+### Relevance Scoring Algorithm
+
+**Scoring Weights (from decisions.md):**
+- Direct imports/exports: 10 points
+- Shared symbols: 7 points
+- Recent edits: 5 points
+- File proximity: 3 points
+- Similar file types: 2 points
+- Bonus for direct query match: 3 points
+
+**Import Analysis:**
+- Extracts ES6 imports, require(), and dynamic imports via regex
+- Resolves relative paths (./), parent paths (../), and @/ aliases
+- Handles index file resolution (.ts, .tsx, .js, .jsx, /index.*)
+
+**Symbol Extraction:**
+- Extracts PascalCase and camelCase identifiers
+- Filters out JavaScript/TypeScript keywords
+- Matches exported symbols against current file's used symbols
+
+**Proximity Calculation:**
+- Compares directory paths to find common prefix
+- Higher score for files in same/nearby directories
+
+### Key Patterns
+
+**Type Safety with Convex:**
+- Convex query returns `{ path, type, content }` but content can be null
+- Used type predicate `(f): f is typeof f & { type: "file" }` for filtering
+- Converted to internal `ProjectFile` interface with optional content
+
+**Consistent Tool Pattern:**
+- Same signature: `createContextTools(projectId, internalKey, convex?)`
+- Same globalConvex pattern for API route context
+- Same error handling (return descriptive strings)
+- Exports `ContextTools` type
+
+### Performance Considerations
+
+- All files fetched once per tool call
+- Regex-based extraction (no AST parsing) for speed
+- Scoring is O(n) where n = number of files
+- Results limited to maxFiles (default 5)
+
+### Future Enhancements
+
+- Add file edit timestamps from Convex (currently not available in API)
+- Cache import graph per project
+- Add TypeScript type relationship analysis
