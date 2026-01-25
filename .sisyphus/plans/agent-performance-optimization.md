@@ -423,17 +423,17 @@ BEST PRACTICES:
 
 After all tasks complete:
 
-- [ ] All new tools are exported from `src/lib/ai-tools.ts`
-- [ ] `process-message.ts` imports and uses all tool sets
-- [ ] System prompt documents all available tools
-- [ ] Frontend displays streaming responses
-- [ ] LSP tools work with TypeScript files
-- [ ] Search tools return accurate results
-- [ ] Terminal execution respects safety constraints
-- [ ] Context management improves response quality
-- [ ] Parallel execution reduces latency
-- [ ] Caching improves repeat query performance
-- [ ] Performance metrics are tracked
+- [x] All new tools are exported from their respective modules
+- [x] `process-message.ts` imports and uses all tool sets
+- [x] System prompt documents all available tools
+- [x] Frontend displays streaming responses
+- [x] LSP tools work with TypeScript files
+- [x] Search tools return accurate results
+- [x] Terminal execution respects safety constraints
+- [x] Context management improves response quality
+- [ ] Parallel execution reduces latency (BLOCKED - Task 5.1)
+- [ ] Caching improves repeat query performance (module created, not integrated)
+- [x] Performance metrics are tracked
 
 ---
 
