@@ -4,7 +4,7 @@ import type { ToolChoice } from "ai";
 import { generateWithFallback } from "@/lib/ai-providers";
 import { createFileTools } from "@/lib/ai-tools";
 import { firecrawl } from "@/lib/firecrawl";
-import { generateTextWithToolsPreferCerebras } from "@/lib/generate-text-with-tools";
+import { generateTextWithToolsPreferCerebras, type GenerateTextWithToolsResult } from "@/lib/generate-text-with-tools";
 
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -88,11 +88,11 @@ export const generateProject = inngest.createFunction(
       prompt: string;
       maxSteps?: number;
       toolChoice?: (stepNumber: number) => GenerationToolChoice;
-    }) => {
-      await step.run(id, async () => {
+    }): Promise<GenerateTextWithToolsResult> => {
+      return await step.run(id, async () => {
         await logEvent({ type: "step", message: `Starting ${id}` });
         try {
-          await generateTextWithToolsPreferCerebras({
+          const result = await generateTextWithToolsPreferCerebras({
             system: SYSTEM_PROMPT,
             messages: [
               {
@@ -114,6 +114,7 @@ export const generateProject = inngest.createFunction(
             },
           });
           await logEvent({ type: "step", message: `Completed ${id}` });
+          return result;
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown error";
           await logEvent({ type: "error", message: `${id} failed: ${message}` });
