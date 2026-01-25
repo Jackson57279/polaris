@@ -189,11 +189,19 @@ export const ConversationSidebar = ({
               from={message.role}
             >
               <MessageContent>
-                {message.status === "processing" ? (
+                {message.status === "processing" && !message.content ? (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <LoaderIcon className="size-4 animate-spin" />
                     <span>Thinking</span>
                     <StreamingIndicator />
+                  </div>
+                ) : message.status === "processing" && message.content ? (
+                  <div>
+                    <MessageResponse>{message.content}</MessageResponse>
+                    <div className="flex items-center gap-1 mt-2 text-muted-foreground text-xs">
+                      <LoaderIcon className="size-3 animate-spin" />
+                      <span>Generating...</span>
+                    </div>
                   </div>
                 ) : (
                   <MessageResponse>{message.content}</MessageResponse>
