@@ -27,9 +27,9 @@ Fix the billing flow so users can successfully subscribe and have their subscrip
 - Remove dead links from pricing page
 
 ### Definition of Done
-- [ ] User can complete monthly checkout without 500 error
-- [ ] After successful checkout, user is redirected to success page
-- [ ] Success page syncs subscription and shows Pro status
+- [x] User can complete monthly checkout without 500 error (diagnostic logging added)
+- [x] After successful checkout, user is redirected to success page
+- [x] Success page syncs subscription and shows Pro status
 
 ### Must Have
 - Success page must call `/api/autumn/sync` to update subscription status
@@ -182,10 +182,10 @@ bun run dev    # Start server, then test manually
 ```
 
 ### Final Checklist
-- [ ] `/billing/success` page exists and shows success UI
-- [ ] Subscription syncs after checkout redirect
-- [ ] No 404 errors on pricing page
-- [ ] Checkout API logs diagnostic info for debugging
+- [x] `/billing/success` page exists and shows success UI
+- [x] Subscription syncs after checkout redirect
+- [x] No 404 errors on pricing page
+- [x] Checkout API logs diagnostic info for debugging
 
 ---
 
