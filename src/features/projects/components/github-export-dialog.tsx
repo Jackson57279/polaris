@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -33,6 +35,9 @@ export function GitHubExportDialog({
 }: GitHubExportDialogProps) {
   const [repoUrl, setRepoUrl] = useState("");
   const [commitMessage, setCommitMessage] = useState("Update from Polaris");
+  const [createIfNotExists, setCreateIfNotExists] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [repoDescription, setRepoDescription] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
@@ -41,11 +46,28 @@ export function GitHubExportDialog({
     setIsExporting(true);
 
     try {
-      await ky.post("/api/github/export", {
-        json: { projectId, repoUrl, commitMessage },
-      });
+      const response = await ky.post("/api/github/export", {
+        json: {
+          projectId,
+          repoUrl,
+          commitMessage,
+          createIfNotExists,
+          isPrivate,
+          repoDescription,
+        },
+      }).json<{ html_url?: string }>();
 
-      toast.success("Project exported successfully!");
+      if (response.html_url) {
+        toast.success("Project exported successfully!", {
+          action: {
+            label: "Open Repo",
+            onClick: () => window.open(response.html_url, "_blank"),
+          },
+        });
+      } else {
+        toast.success("Project exported successfully!");
+      }
+      
       onOpenChange(false);
     } catch (error) {
       if (error instanceof HTTPError) {
@@ -82,6 +104,53 @@ export function GitHubExportDialog({
               disabled={isExporting}
             />
           </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="createIfNotExists" 
+              checked={createIfNotExists}
+              onCheckedChange={(checked) => setCreateIfNotExists(checked as boolean)}
+              disabled={isExporting}
+            />
+            <Label htmlFor="createIfNotExists" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Create repository if it doesn't exist
+            </Label>
+          </div>
+
+          {createIfNotExists && (
+            <div className="space-y-4 pl-6 border-l-2 border-muted ml-1">
+              <div className="space-y-2">
+                <Label>Visibility</Label>
+                <RadioGroup 
+                  value={isPrivate ? "private" : "public"} 
+                  onValueChange={(value) => setIsPrivate(value === "private")}
+                  disabled={isExporting}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="public" id="public" />
+                    <Label htmlFor="public">Public</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="private" id="private" />
+                    <Label htmlFor="private">Private</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="repoDescription">Description (Optional)</Label>
+                <Input
+                  id="repoDescription"
+                  placeholder="My awesome project"
+                  value={repoDescription}
+                  onChange={(e) => setRepoDescription(e.target.value)}
+                  disabled={isExporting}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="commitMessage">Commit Message</Label>
             <Input

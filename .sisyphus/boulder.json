@@ -1,13 +1,8 @@
 {
-  "active_plan": "/home/dih/polaris/.sisyphus/plans/agent-performance-optimization.md",
-  "started_at": "2026-01-25T08:06:29.860Z",
+  "active_plan": "/home/dih/polaris/.sisyphus/plans/fix-billing-bugs.md",
+  "started_at": "2026-01-26T02:00:53.601Z",
   "session_ids": [
-    "ses_40bd140a1ffeBRKmFtC7Rwy1QW",
-    "ses_4094bcc90ffeLcAyce5OiWaUMq",
-    "ses_40944b451ffebNc31qqt3jV9g6",
-    "ses_408d9f8a7ffekbaqcQhVR5r2zI",
-    "ses_408d74c96ffeO166UyXenXPtqU",
-    "ses_408c1c226ffert69Lgd8dsSp0T"
+    "ses_4080eedf8ffehxhN1c6Vrv9iGK"
   ],
-  "plan_name": "agent-performance-optimization"
+  "plan_name": "fix-billing-bugs"
 }

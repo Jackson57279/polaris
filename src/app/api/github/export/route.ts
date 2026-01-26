@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/stack-auth-api";
 
 import { convex } from "@/lib/convex-client";
-import { createOctokit, getGithubToken, exportToRepository, parseGitHubUrl } from "@/lib/github";
+import { createOctokit, getGithubToken, exportToRepository, parseGitHubUrl, checkRepoExists, createRepository } from "@/lib/github";
 
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -12,6 +12,9 @@ const requestSchema = z.object({
   projectId: z.string(),
   repoUrl: z.string().url(),
   commitMessage: z.string().optional(),
+  createIfNotExists: z.boolean().optional(),
+  isPrivate: z.boolean().optional(),
+  repoDescription: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -31,7 +34,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { projectId, repoUrl, commitMessage = "Update from Polaris" } = requestSchema.parse(body);
+  const { 
+    projectId, 
+    repoUrl, 
+    commitMessage = "Update from Polaris",
+    createIfNotExists = false,
+    isPrivate = true,
+    repoDescription
+  } = requestSchema.parse(body);
 
   const parsed = parseGitHubUrl(repoUrl);
   if (!parsed) {
@@ -52,6 +62,39 @@ export async function POST(request: Request) {
   }
 
   const octokit = createOctokit(token);
+
+  const repoCheck = await checkRepoExists(octokit, owner, repo);
+  
+  if (repoCheck.error) {
+    return NextResponse.json(
+      { error: `Failed to check repository: ${repoCheck.error}` },
+      { status: 500 }
+    );
+  }
+
+  if (!repoCheck.exists) {
+    if (!createIfNotExists) {
+      return NextResponse.json(
+        { error: `Repository ${owner}/${repo} does not exist. Set createIfNotExists to true to create it automatically.` },
+        { status: 404 }
+      );
+    }
+
+    const createResult = await createRepository(octokit, repo, {
+      private: isPrivate,
+      description: repoDescription,
+      autoInit: true,
+    });
+
+    if (!createResult.success) {
+      return NextResponse.json(
+        { error: `Failed to create repository: ${createResult.error}` },
+        { status: 500 }
+      );
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
 
   try {
     await convex.mutation(api.system.updateProjectExportStatus, {

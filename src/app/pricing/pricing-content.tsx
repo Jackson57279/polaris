@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useUser } from "@stackframe/stack";
 import { Check, Sparkles, Zap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -254,20 +253,9 @@ export function PricingContent() {
         </div>
 
         <div className="mt-16 text-center">
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground">
             All plans include a 14-day free trial. No credit card required.
           </p>
-          <div className="flex justify-center gap-6 text-sm">
-            <Link href="/docs/faq" className="text-muted-foreground hover:text-foreground transition-colors">
-              FAQ
-            </Link>
-            <Link href="/docs/features" className="text-muted-foreground hover:text-foreground transition-colors">
-              Features
-            </Link>
-            <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
-              Contact Sales
-            </Link>
-          </div>
         </div>
       </div>
     </div>

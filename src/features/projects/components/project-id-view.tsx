@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Allotment } from "allotment";
 import { FaGithub } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import ky from "ky";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { EditorView } from "@/features/editor/components/editor-view";
@@ -15,6 +17,7 @@ import {
 
 import { FileExplorer } from "./file-explorer";
 import { GitHubExportDialog } from "./github-export-dialog";
+import { GitHubConnectPrompt } from "./github-connect-prompt";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useUser } from "@stackframe/stack";
 
@@ -54,11 +57,29 @@ export const ProjectIdView = ({
   const router = useRouter();
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [connectPromptOpen, setConnectPromptOpen] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
   if (!user) {
     router.push("/handler/sign-in");
     return null;
   }
+
+  const handleExportClick = async () => {
+    setIsCheckingConnection(true);
+    try {
+      const status = await ky.get("/api/github/status").json<{ connected: boolean }>();
+      if (status.connected) {
+        setExportDialogOpen(true);
+      } else {
+        setConnectPromptOpen(true);
+      }
+    } catch (error) {
+      toast.error("Failed to check GitHub connection");
+    } finally {
+      setIsCheckingConnection(false);
+    }
+  };
 
   return (
     <>
@@ -66,6 +87,11 @@ export const ProjectIdView = ({
         projectId={projectId}
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
+      />
+      <GitHubConnectPrompt
+        open={connectPromptOpen}
+        onOpenChange={setConnectPromptOpen}
+        onConnected={() => setExportDialogOpen(true)}
       />
     <div className="h-full flex flex-col">
       <nav className="h-8.75 flex items-center bg-sidebar border-b">
@@ -81,7 +107,7 @@ export const ProjectIdView = ({
         />
         <div className="flex-1 flex justify-end h-full">
           <div
-            onClick={() => setExportDialogOpen(true)}
+            onClick={handleExportClick}
             className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30"
           >
             <FaGithub className="size-3.5" />

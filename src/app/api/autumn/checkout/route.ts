@@ -19,18 +19,27 @@ export async function POST(request: NextRequest) {
 
   let tier: Tier;
 
-  try {
-    const body = await request.json();
-    tier = body.tier;
-  } catch {
-    return new NextResponse('Malformed JSON', { status: 400 });
-  }
+   try {
+     const body = await request.json();
+     tier = body.tier;
+   } catch {
+     return new NextResponse('Malformed JSON', { status: 400 });
+   }
 
-  if (!tier || !['pro_monthly', 'pro_yearly'].includes(tier)) {
-    return new NextResponse('Invalid tier', { status: 400 });
-  }
+   console.log('Checkout debug - tier extracted:', { tier });
 
-  const productId = getProductIdForTier(tier);
+   if (!tier || !['pro_monthly', 'pro_yearly'].includes(tier)) {
+     return new NextResponse('Invalid tier', { status: 400 });
+   }
+
+   const productId = getProductIdForTier(tier);
+   console.log('Checkout debug - product ID resolved:', {
+     tier,
+     productId,
+     isEmpty: !productId,
+     monthlyEnv: process.env.NEXT_PUBLIC_AUTUMN_PRO_MONTHLY_PRODUCT_ID,
+     yearlyEnv: process.env.NEXT_PUBLIC_AUTUMN_PRO_YEARLY_PRODUCT_ID,
+   });
   if (!productId) {
     return new NextResponse('Product ID not configured', { status: 500 });
   }

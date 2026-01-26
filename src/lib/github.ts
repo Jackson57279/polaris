@@ -5,6 +5,21 @@ export function createOctokit(accessToken: string) {
   return new Octokit({ auth: accessToken });
 }
 
+export async function validateGitHubToken(
+  octokit: Octokit
+): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const { data } = await octokit.users.getAuthenticated();
+    return { valid: true, username: data.login };
+  } catch (error) {
+    if (error instanceof Error && "status" in error && error.status === 401) {
+      return { valid: false, error: "Invalid, expired, or revoked token" };
+    }
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { valid: false, error: errorMessage };
+  }
+}
+
 export async function getGithubToken(userId: string): Promise<string | null> {
   try {
     const user = await stackServerApp.getUser(userId);
