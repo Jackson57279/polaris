@@ -149,3 +149,44 @@ export function parseGitHubUrl(url: string): { owner: string; repo: string } | n
   if (!match) return null;
   return { owner: match[1], repo: match[2].replace(/\.git$/, "") };
 }
+
+function sanitizeRepoName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-_]/g, "");
+}
+
+export async function createRepository(
+  octokit: Octokit,
+  name: string,
+  options?: { private?: boolean; description?: string; autoInit?: boolean }
+): Promise<{ success: boolean; repoUrl?: string; error?: string }> {
+  try {
+    const sanitizedName = sanitizeRepoName(name);
+
+    if (!sanitizedName) {
+      return { success: false, error: "Invalid repository name" };
+    }
+
+    const { data } = await octokit.repos.createForAuthenticatedUser({
+      name: sanitizedName,
+      private: options?.private ?? true,
+      description: options?.description,
+      auto_init: options?.autoInit ?? false,
+    });
+
+    return { success: true, repoUrl: data.html_url };
+  } catch (error) {
+    if (error instanceof Error && "status" in error) {
+      if (error.status === 409) {
+        return { success: false, error: "A repository with this name already exists" };
+      }
+      if (error.status === 422) {
+        return { success: false, error: "Invalid repository name" };
+      }
+    }
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: errorMessage };
+  }
+}
