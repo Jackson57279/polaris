@@ -142,8 +142,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
+    icon: '/icons/icon-192x192.svg',
+    badge: '/icons/icon-192x192.svg',
     tag: data.tag || 'default',
     data: data.data || {},
     requireInteraction: data.requireInteraction || false,

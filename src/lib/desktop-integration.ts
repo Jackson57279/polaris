@@ -37,8 +37,8 @@ export class DesktopIntegrationManager {
     }
 
     const defaultOptions: NotificationOptions = {
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/badge-72x72.png',
+      icon: '/icons/icon-192x192.svg',
+      badge: '/icons/icon-192x192.svg',
       requireInteraction: true,
       ...options
     };

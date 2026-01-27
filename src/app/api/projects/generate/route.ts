@@ -90,8 +90,17 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Project generation failed:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const isAutumnError = errorMessage.includes("AUTUMN") || errorMessage.includes("environment variable");
+    
     return NextResponse.json(
-      { error: "Failed to generate project" },
+      { 
+        error: isAutumnError 
+          ? "Billing service configuration error. Please contact support."
+          : "Failed to generate project",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
+      },
       { status: 500 }
     );
   }
