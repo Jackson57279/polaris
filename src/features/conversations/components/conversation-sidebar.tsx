@@ -46,6 +46,7 @@ import {
   useMessages,
 } from "../hooks/use-conversations";
 import { ConversationsHistoryDialog } from "./conversations-history-dialog";
+import { BackgroundAgentsPanel } from "../../projects/components/background-agents-panel";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 import { DEFAULT_CONVERSATION_TITLE } from "../../../../convex/constants";
@@ -259,6 +260,8 @@ export const ConversationSidebar = ({
           </PromptInputFooter>
         </PromptInput>
       </div>
+
+      <BackgroundAgentsPanel projectId={projectId} />
     </div>
     </>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
 import { formatDistanceToNow } from "date-fns";
-import { AlertCircleIcon, ArrowRightIcon, GlobeIcon, Loader2Icon } from "lucide-react";
+import { AlertCircleIcon, ArrowRightIcon, GlobeIcon, Loader2Icon, DownloadIcon, ImagePlusIcon } from "lucide-react";
 
 import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
@@ -37,12 +37,18 @@ const getProjectIcon = (project: Doc<"projects">) => {
 
 interface ProjectsListProps {
   onViewAll: () => void;
+  onExport?: (projectId: string, projectName: string) => void;
+  onImageUpload?: (projectId: string) => void;
 }
 
-const ContinueCard = ({ 
-  data
+const ContinueCard = ({
+  data,
+  onExport,
+  onImageUpload
 }: {
   data: Doc<"projects">;
+  onExport?: (projectId: string, projectName: string) => void;
+  onImageUpload?: (projectId: string) => void;
 }) => {
   return (
     <div className="flex flex-col gap-2">
@@ -62,7 +68,37 @@ const ContinueCard = ({
                 {data.name}
               </span>
             </div>
-            <ArrowRightIcon className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+            <div className="flex items-center gap-2">
+              {onExport && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onExport(data._id, data.name);
+                  }}
+                >
+                  <DownloadIcon className="size-3.5" />
+                </Button>
+              )}
+              {onImageUpload && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onImageUpload(data._id);
+                  }}
+                >
+                  <ImagePlusIcon className="size-3.5" />
+                </Button>
+              )}
+              <ArrowRightIcon className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </div>
           <span className="text-xs text-muted-foreground">
             {formatTimestamp(data.updatedAt)}
@@ -73,29 +109,60 @@ const ContinueCard = ({
   )
 };
 
-const ProjectItem = ({ 
-  data
+const ProjectItem = ({
+  data,
+  onExport,
+  onImageUpload
 }: {
   data: Doc<"projects">;
+  onExport?: (projectId: string, projectName: string) => void;
+  onImageUpload?: (projectId: string) => void;
 }) => {
   return (
-    <Link 
-      href={`/projects/${data._id}`}
-      className="text-sm text-foreground/60 font-medium hover:text-foreground py-1 flex items-center justify-between w-full group"
-    >
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between w-full group">
+      <Link
+        href={`/projects/${data._id}`}
+        className="text-sm text-foreground/60 font-medium hover:text-foreground py-1 flex items-center gap-2 flex-1 min-w-0"
+      >
         {getProjectIcon(data)}
         <span className="truncate">{data.name}</span>
+      </Link>
+      <div className="flex items-center gap-1">
+        {onExport && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-6"
+            onClick={(e) => {
+              e.preventDefault();
+              onExport(data._id, data.name);
+            }}
+          >
+            <DownloadIcon className="size-3" />
+          </Button>
+        )}
+        {onImageUpload && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-6"
+            onClick={(e) => {
+              e.preventDefault();
+              onImageUpload(data._id);
+            }}
+          >
+            <ImagePlusIcon className="size-3" />
+          </Button>
+        )}
       </div>
-      <span className="text-xs text-muted-foreground group-hover:text-foreground/60 transition-colors">
-        {formatTimestamp(data.updatedAt)}
-      </span>
-    </Link>
+    </div>
   );
 };
 
-export const ProjectsList = ({ 
-  onViewAll
+export const ProjectsList = ({
+  onViewAll,
+  onExport,
+  onImageUpload
 }: ProjectsListProps) => {
   const projects = useProjectsPartial(6);
 
@@ -107,7 +174,13 @@ export const ProjectsList = ({
 
   return (
     <div className="flex flex-col gap-4">
-      {mostRecent ? <ContinueCard data={mostRecent} /> : null}
+      {mostRecent ? (
+        <ContinueCard
+          data={mostRecent}
+          onExport={onExport}
+          onImageUpload={onImageUpload}
+        />
+      ) : null}
       {rest.length > 0 && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
@@ -129,6 +202,8 @@ export const ProjectsList = ({
               <ProjectItem
                 key={project._id}
                 data={project}
+                onExport={onExport}
+                onImageUpload={onImageUpload}
               />
             ))}
           </ul>

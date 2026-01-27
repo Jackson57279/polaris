@@ -4,6 +4,7 @@ import {
   Cerebras,
   createCerebrasCompletion,
   CEREBRAS_MODEL,
+  OPENROUTER_FALLBACK_MODEL,
 } from "./cerebras-provider";
 import { logProviderEvent, type ProviderMetadata } from "./ai-provider-utils";
 
@@ -14,8 +15,6 @@ const openrouter = createOpenRouter({
     "X-Title": "Polaris IDE",
   },
 });
-
-const FALLBACK_MODEL = "z-ai/glm-4.7"
 
 export interface AIProviderResult<T> {
   data: T;
@@ -52,7 +51,7 @@ export async function generateWithFallback(
 
     const { generateText } = await import("ai");
     const response = await generateText({
-      model: openrouter.chat(FALLBACK_MODEL),
+      model: openrouter.chat(OPENROUTER_FALLBACK_MODEL),
       messages: messages.map((m) => ({
         role: m.role as "system" | "user" | "assistant",
         content: m.content,
@@ -65,7 +64,7 @@ export async function generateWithFallback(
       data: response.text,
       metadata: {
         provider: "openrouter",
-        model: FALLBACK_MODEL,
+        model: OPENROUTER_FALLBACK_MODEL,
         usedFallback: true,
       },
     };
@@ -83,5 +82,5 @@ export function getOpenRouterModel(modelId: string): LanguageModel {
 }
 
 export function getDefaultModel(): LanguageModel {
-  return openrouter.chat(FALLBACK_MODEL);
+  return openrouter.chat(OPENROUTER_FALLBACK_MODEL);
 }

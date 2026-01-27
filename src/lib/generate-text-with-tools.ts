@@ -11,7 +11,7 @@ import Cerebras from "@cerebras/cerebras_cloud_sdk";
 
 import { getOpenRouterModel } from "./ai-providers";
 import { logProviderEvent } from "./ai-provider-utils";
-import { CEREBRAS_MODEL } from "./cerebras-provider";
+import { CEREBRAS_MODEL, OPENROUTER_FALLBACK_MODEL } from "./cerebras-provider";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ToolSet = Record<string, Tool<any, any>>;
@@ -38,7 +38,7 @@ export interface GenerateTextWithToolsResult {
   usedFallback: boolean;
 }
 
-const DEFAULT_OPENROUTER_MODEL = "z-ai/glm-4.7";
+const DEFAULT_OPENROUTER_MODEL = OPENROUTER_FALLBACK_MODEL;
 
 type OpenAIToolCall = {
   id: string;

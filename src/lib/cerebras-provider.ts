@@ -5,7 +5,10 @@ const cerebrasClient = new Cerebras({
   apiKey: process.env.CEREBRAS_API_KEY,
 });
 
-export const CEREBRAS_MODEL = 'zai-glm-4.7';
+export const CEREBRAS_MODEL = 'cerebras/glm-4.7';
+
+// OpenRouter fallback uses the same model for consistency
+export const OPENROUTER_FALLBACK_MODEL = 'z-ai/glm-4.7';
 
 export interface CerebrasStreamChunk {
   choices: Array<{

@@ -61,6 +61,35 @@ export default defineSchema({
   }).index("by_owner", ["ownerId"])
     .index("by_user", ["userId"]),
 
+  backgroundAgents: defineTable({
+    projectId: v.id("projects"),
+    type: v.union(
+      v.literal("import"),
+      v.literal("export"),
+      v.literal("generation"),
+      v.literal("refactor"),
+      v.literal("test"),
+      v.literal("custom")
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    title: v.string(),
+    description: v.optional(v.string()),
+    progress: v.number(), // 0-100
+    currentStep: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_status", ["status"]),
+
   files: defineTable({
     projectId: v.id("projects"),
     parentId: v.optional(v.id("files")),
