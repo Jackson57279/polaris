@@ -50,6 +50,11 @@ export async function checkAccess(params: CheckParams) {
   const autumn = getAutumn();
   const result = await autumn.check(params);
   if (result.error) {
+    // If the feature isn't configured in Autumn, allow access by default
+    if ('code' in result.error && result.error.code === 'feature_not_found') {
+      console.warn(`[Autumn] Feature "${params.feature_id}" not configured — allowing access by default.`);
+      return { allowed: true, usage: 0, included_usage: 0 };
+    }
     throw result.error;
   }
   return result.data;
@@ -63,6 +68,10 @@ export async function trackUsage(customerId: string, featureId: string, value = 
     value,
   });
   if (result.error) {
+    if ('code' in result.error && result.error.code === 'feature_not_found') {
+      console.warn(`[Autumn] Feature "${featureId}" not configured — skipping usage tracking.`);
+      return null;
+    }
     throw result.error;
   }
   return result.data;
