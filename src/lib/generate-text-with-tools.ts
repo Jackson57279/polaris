@@ -38,7 +38,8 @@ export interface GenerateTextWithToolsResult {
   usedFallback: boolean;
 }
 
-const DEFAULT_OPENROUTER_MODEL = "z-ai/glm-4.7";
+const PRIMARY_MODEL = "moonshotai/kimi-k2.5";
+const FALLBACK_MODEL = "zai-glm-4.7";
 
 type OpenAIToolCall = {
   id: string;
@@ -343,21 +344,12 @@ export async function generateTextWithToolsPreferCerebras<TOOLS extends ToolSet>
   options: GenerateTextWithToolsOptions<TOOLS>
 ): Promise<GenerateTextWithToolsResult> {
   try {
-    return await generateWithCerebrasTools(options);
-  } catch (error) {
-    if (error instanceof Cerebras.RateLimitError) {
-      logProviderEvent("Cerebras rate limit hit, falling back to OpenRouter", {
-        error,
-      });
-    } else {
-      logProviderEvent("Cerebras failed, falling back to OpenRouter", { error });
-    }
-
+    logProviderEvent("Attempting OpenRouter Kimi K2.5 with tools");
     const toolChoiceFn =
       typeof options.toolChoice === "function" ? options.toolChoice : undefined;
 
     const response = await generateText({
-      model: getOpenRouterModel(DEFAULT_OPENROUTER_MODEL),
+      model: getOpenRouterModel(PRIMARY_MODEL),
       system: options.system,
       messages: options.messages,
       tools: options.tools,
@@ -378,9 +370,13 @@ export async function generateTextWithToolsPreferCerebras<TOOLS extends ToolSet>
     return {
       text: response.text,
       provider: "openrouter",
-      model: DEFAULT_OPENROUTER_MODEL,
-      usedFallback: true,
+      model: PRIMARY_MODEL,
+      usedFallback: false,
     };
+  } catch (error) {
+    logProviderEvent("OpenRouter failed, falling back to Cerebras GLM-4.7", { error });
+
+    return await generateWithCerebrasTools(options);
   }
 }
 
@@ -407,12 +403,12 @@ export async function streamTextWithToolsPreferCerebras<TOOLS extends ToolSet>(
     typeof options.toolChoice === "function" ? options.toolChoice : undefined;
 
   logProviderEvent("Starting streaming with OpenRouter", {
-    model: DEFAULT_OPENROUTER_MODEL,
+    model: PRIMARY_MODEL,
   });
 
   type ToolChoiceFn = (step: number) => ToolChoice<TOOLS>;
   const result = streamText({
-    model: getOpenRouterModel(DEFAULT_OPENROUTER_MODEL),
+    model: getOpenRouterModel(PRIMARY_MODEL),
     system: options.system,
     messages: options.messages,
     tools: options.tools,
@@ -440,7 +436,7 @@ export async function streamTextWithToolsPreferCerebras<TOOLS extends ToolSet>(
   return {
     text: fullText,
     provider: "openrouter",
-    model: DEFAULT_OPENROUTER_MODEL,
+    model: PRIMARY_MODEL,
     usedFallback: false,
   };
 }

@@ -15,7 +15,8 @@ const openrouter = createOpenRouter({
   },
 });
 
-const FALLBACK_MODEL = "z-ai/glm-4.7"
+const PRIMARY_MODEL = "moonshotai/kimi-k2.5";
+const FALLBACK_MODEL = "zai-glm-4.7";
 
 export interface AIProviderResult<T> {
   data: T;
@@ -30,29 +31,10 @@ export async function generateWithFallback(
   }
 ): Promise<AIProviderResult<string>> {
   try {
-    logProviderEvent("Attempting Cerebras GLM-4.7");
-    const response = await createCerebrasCompletion(messages, options);
-    
-    return {
-      data: response.choices[0]?.message?.content || "",
-      metadata: {
-        provider: "cerebras",
-        model: CEREBRAS_MODEL,
-        usedFallback: false,
-      },
-    };
-  } catch (error) {
-    const isRateLimit = error instanceof Cerebras.RateLimitError;
-    logProviderEvent(
-      isRateLimit
-        ? "Rate limit hit, falling back to OpenRouter"
-        : "Cerebras error, falling back to OpenRouter",
-      { error }
-    );
-
+    logProviderEvent("Attempting OpenRouter Kimi K2.5");
     const { generateText } = await import("ai");
     const response = await generateText({
-      model: openrouter.chat(FALLBACK_MODEL),
+      model: openrouter.chat(PRIMARY_MODEL),
       messages: messages.map((m) => ({
         role: m.role as "system" | "user" | "assistant",
         content: m.content,
@@ -60,12 +42,28 @@ export async function generateWithFallback(
       temperature: options?.temperature ?? 0.7,
       maxOutputTokens: options?.max_tokens ?? 2000,
     });
-
+    
     return {
       data: response.text,
       metadata: {
         provider: "openrouter",
-        model: FALLBACK_MODEL,
+        model: PRIMARY_MODEL,
+        usedFallback: false,
+      },
+    };
+  } catch (error) {
+    logProviderEvent(
+      "OpenRouter error, falling back to Cerebras GLM-4.7",
+      { error }
+    );
+
+    const response = await createCerebrasCompletion(messages, options);
+
+    return {
+      data: response.choices[0]?.message?.content || "",
+      metadata: {
+        provider: "cerebras",
+        model: CEREBRAS_MODEL,
         usedFallback: true,
       },
     };
@@ -83,5 +81,5 @@ export function getOpenRouterModel(modelId: string): LanguageModel {
 }
 
 export function getDefaultModel(): LanguageModel {
-  return openrouter.chat(FALLBACK_MODEL);
+  return openrouter.chat(PRIMARY_MODEL);
 }

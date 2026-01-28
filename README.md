@@ -24,7 +24,7 @@ Polaris is a browser-based IDE inspired by Cursor AI, featuring:
 | **Frontend**  | Next.js 16, React 19, TypeScript, Tailwind CSS 4            |
 | **Editor**    | CodeMirror 6, Custom Extensions, One Dark Theme             |
 | **Backend**   | Convex (Real-time DB), Inngest (Background Jobs)            |
-| **AI**        | Z.ai GLM-4.7 via Cerebras (primary, 1000 TPS) + OpenRouter fallback |
+| **AI**        | Kimi K2.5 via OpenRouter (primary) + Z.ai GLM-4.7 via Cerebras (fallback) |
 | **Auth**      | Clerk (with GitHub OAuth)                                   |
 | **Execution** | WebContainer API, xterm.js                                  |
 | **UI**        | shadcn/ui, Radix UI                                         |
@@ -69,8 +69,8 @@ Polaris is a browser-based IDE inspired by Cursor AI, featuring:
   - [Clerk](https://cwa.run/clerk) - Authentication
   - [Convex](https://cwa.run/convex) - Database
   - [Inngest](https://cwa.run/inngest) - Background jobs
-  - [Cerebras AI](https://inference.cerebras.ai) - AI API for Z.ai GLM-4.7 (primary, free tier available)
-  - [OpenRouter](https://openrouter.ai) - AI API fallback (required)
+  - [OpenRouter](https://openrouter.ai) - AI API for Kimi K2.5 (primary, required)
+  - [Cerebras AI](https://inference.cerebras.ai) - AI API fallback for Z.ai GLM-4.7 (free tier available)
   - [Firecrawl](https://cwa.run/firecrawl) - Web scraping (optional)
   - [Sentry](https://cwa.run/sentry) - Error tracking (optional)
 
@@ -108,8 +108,8 @@ Polaris is a browser-based IDE inspired by Cursor AI, featuring:
    POLARIS_CONVEX_INTERNAL_KEY=  # Generate a random string
 
    # AI Providers (both required)
-   CEREBRAS_API_KEY=         # Primary - Z.ai GLM-4.7 (1000 tokens/sec, free tier)
-   OPENROUTER_API_KEY=       # Fallback - Used when Cerebras hits rate limits
+   OPENROUTER_API_KEY=       # Primary - Kimi K2.5 (moonshotai/kimi-k2.5)
+   CEREBRAS_API_KEY=         # Fallback - Z.ai GLM-4.7 (1000 tokens/sec, free tier)
 
    # Firecrawl (optional)
    FIRECRAWL_API_KEY=
