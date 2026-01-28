@@ -13,7 +13,13 @@ export function setGlobalConvex(client: ConvexHttpClient) {
 }
 
 function getConvex(client?: ConvexHttpClient): ConvexHttpClient {
-  return client ?? globalConvex!;
+  if (client) return client;
+  if (!globalConvex) {
+    throw new Error(
+      "Convex client not initialized. Pass a ConvexHttpClient to createFileTools or call setGlobalConvex first."
+    );
+  }
+  return globalConvex;
 }
 
 export const createFileTools = (
