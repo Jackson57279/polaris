@@ -1,5 +1,5 @@
 import { LanguageModel } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import {
   Cerebras,
   createCerebrasCompletion,
@@ -7,8 +7,9 @@ import {
 } from "./cerebras-provider";
 import { logProviderEvent, type ProviderMetadata } from "./ai-provider-utils";
 
-const openrouter = createOpenRouter({
+const openrouter = createAnthropic({
   apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
   headers: {
     "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     "X-Title": "Polaris IDE",
@@ -34,7 +35,7 @@ export async function generateWithFallback(
     logProviderEvent("Attempting OpenRouter Kimi K2.5");
     const { generateText } = await import("ai");
     const response = await generateText({
-      model: openrouter.chat(PRIMARY_MODEL),
+      model: openrouter(PRIMARY_MODEL),
       messages: messages.map((m) => ({
         role: m.role as "system" | "user" | "assistant",
         content: m.content,
@@ -77,9 +78,9 @@ export function getCerebrasModel(): LanguageModel {
 }
 
 export function getOpenRouterModel(modelId: string): LanguageModel {
-  return openrouter.chat(modelId);
+  return openrouter(modelId);
 }
 
 export function getDefaultModel(): LanguageModel {
-  return openrouter.chat(PRIMARY_MODEL);
+  return openrouter(PRIMARY_MODEL);
 }
