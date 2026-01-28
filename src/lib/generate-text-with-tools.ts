@@ -367,6 +367,27 @@ export async function generateTextWithToolsPreferCerebras<TOOLS extends ToolSet>
       },
     });
 
+    const responseSteps = response.steps || [];
+    const hadToolCalls = responseSteps.some(step => 
+      step.toolCalls && Array.isArray(step.toolCalls) && step.toolCalls.length > 0
+    );
+
+    const firstStepToolChoice = typeof options.toolChoice === 'function' 
+      ? options.toolChoice(0) 
+      : options.toolChoice;
+    
+    const requiredSpecificTool = 
+      firstStepToolChoice && 
+      typeof firstStepToolChoice === 'object' && 
+      'toolName' in firstStepToolChoice;
+
+    const failedToCallRequiredTool = requiredSpecificTool && !hadToolCalls;
+    
+    if (failedToCallRequiredTool) {
+      logProviderEvent("OpenRouter completed without calling required tool, falling back to Cerebras");
+      throw new Error("Required tool not called by OpenRouter");
+    }
+
     return {
       text: response.text,
       provider: "openrouter",
