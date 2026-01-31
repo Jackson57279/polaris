@@ -1,12 +1,15 @@
+"use client";
+
 import ky from "ky";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   AlertCircleIcon,
   CopyIcon, 
   HistoryIcon, 
   LoaderIcon, 
-  PlusIcon
+  PlusIcon,
+  XIcon,
 } from "lucide-react";
 import { isElectron } from "@/lib/electron/environment";
 import { ipcClient } from "@/lib/electron/ipc-client";
@@ -33,8 +36,8 @@ import {
   PromptInputBody,
   PromptInputFooter,
   PromptInputSubmit,
-  PromptInputTextarea,
   PromptInputTools,
+  PromptInputTextarea,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
@@ -54,6 +57,13 @@ interface ConversationSidebarProps {
   projectId: Id<"projects">;
 };
 
+interface StreamingState {
+  isStreaming: boolean;
+  content: string;
+  toolCalls: Array<{ id: string; name: string; args: unknown }>;
+  toolResults: Array<{ id: string; result: unknown }>;
+}
+
 export const ConversationSidebar = ({
   projectId,
 }: ConversationSidebarProps) => {
@@ -63,6 +73,13 @@ export const ConversationSidebar = ({
     selectedConversationId,
     setSelectedConversationId,
   ] = useState<Id<"conversations"> | null>(null);
+  const [streamingState, setStreamingState] = useState<StreamingState>({
+    isStreaming: false,
+    content: "",
+    toolCalls: [],
+    toolResults: [],
+  });
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const createConversation = useCreateConversation();
   const conversations = useConversations(projectId);
@@ -75,7 +92,7 @@ export const ConversationSidebar = ({
 
   const isProcessing = conversationMessages?.some(
     (msg) => msg.status === "processing"
-  );
+  ) || streamingState.isStreaming;
 
   const aiStatus: AIStatus = isProcessing ? "thinking" : "idle";
 
@@ -103,23 +120,18 @@ export const ConversationSidebar = ({
     }
   };
 
-  const handleCancel = async () => {
-    const processingMessage = conversationMessages?.find(
-      (msg) => msg.status === "processing"
-    );
-
-    if (!processingMessage) return;
-
-    try {
-      await ky.delete("/api/messages", {
-        json: {
-          messageId: processingMessage._id,
-        },
-      });
-    } catch {
-      toast.error("Failed to cancel message");
+  const handleCancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
-  };
+    setStreamingState({
+      isStreaming: false,
+      content: "",
+      toolCalls: [],
+      toolResults: [],
+    });
+  }, []);
 
   const handleSubmit = async (message: PromptInputMessage) => {
     if (isProcessing && !message.text) {
@@ -137,20 +149,129 @@ export const ConversationSidebar = ({
       }
     }
 
-    // Trigger Inngest function via API
+    // Reset streaming state
+    setStreamingState({
+      isStreaming: true,
+      content: "",
+      toolCalls: [],
+      toolResults: [],
+    });
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
     try {
-      await ky.post("/api/messages", {
-        json: {
+      const response = await fetch("/api/messages/stream", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           conversationId,
           message: message.text,
-        },
+        }),
+        signal: abortControllerRef.current.signal,
       });
-    } catch {
-      toast.error("Message failed to send");
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              
+              switch (event.type) {
+                case "text":
+                  setStreamingState((prev) => ({
+                    ...prev,
+                    content: event.content,
+                  }));
+                  break;
+                case "toolCall":
+                  setStreamingState((prev) => ({
+                    ...prev,
+                    toolCalls: [...prev.toolCalls, event.toolCall],
+                  }));
+                  break;
+                case "toolResult":
+                  setStreamingState((prev) => ({
+                    ...prev,
+                    toolResults: [...prev.toolResults, event.toolResult],
+                  }));
+                  break;
+                case "error":
+                  toast.error(event.error || "An error occurred");
+                  setStreamingState((prev) => ({
+                    ...prev,
+                    isStreaming: false,
+                  }));
+                  break;
+                case "complete":
+                  setStreamingState((prev) => ({
+                    ...prev,
+                    isStreaming: false,
+                  }));
+                  break;
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        // User cancelled - this is expected
+        console.log("Message generation cancelled by user");
+      } else {
+        console.error("Message failed to send:", error);
+        toast.error(error instanceof Error ? error.message : "Message failed to send");
+      }
+      setStreamingState({
+        isStreaming: false,
+        content: "",
+        toolCalls: [],
+        toolResults: [],
+      });
+    } finally {
+      abortControllerRef.current = null;
     }
 
     setInput("");
-  }
+  };
+
+  // Combine Convex messages with streaming state
+  const displayMessages = conversationMessages?.map((msg) => {
+    // If this is the last assistant message and we're streaming, show streaming content
+    const isLastMessage = msg._id === conversationMessages[conversationMessages.length - 1]?._id;
+    if (isLastMessage && msg.role === "assistant" && streamingState.isStreaming) {
+      return {
+        ...msg,
+        content: streamingState.content || msg.content,
+        status: "processing" as const,
+      };
+    }
+    return msg;
+  });
 
   return (
     <>
@@ -184,7 +305,7 @@ export const ConversationSidebar = ({
       </div>
       <Conversation className="flex-1">
         <ConversationContent>
-          {conversationMessages?.map((message, messageIndex) => (
+          {displayMessages?.map((message, messageIndex) => (
             <Message
               key={message._id}
               from={message.role}
@@ -218,7 +339,7 @@ export const ConversationSidebar = ({
               </MessageContent>
               {message.role === "assistant" &&
                 message.status === "completed" &&
-                messageIndex === (conversationMessages?.length ?? 0) - 1 && (
+                messageIndex === (displayMessages?.length ?? 0) - 1 && (
                   <MessageActions>
                     <MessageAction
                       onClick={() => {
@@ -252,10 +373,23 @@ export const ConversationSidebar = ({
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools />
-            <PromptInputSubmit
-              disabled={isProcessing ? false : !input}
-              status={isProcessing ? "streaming" : undefined}
-            />
+            <div className="flex items-center gap-2">
+              {streamingState.isStreaming && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                >
+                  <XIcon className="size-4 mr-1" />
+                  Cancel
+                </Button>
+              )}
+              <PromptInputSubmit
+                disabled={isProcessing ? false : !input}
+                status={isProcessing ? "streaming" : undefined}
+              />
+            </div>
           </PromptInputFooter>
         </PromptInput>
       </div>

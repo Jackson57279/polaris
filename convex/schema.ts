@@ -93,7 +93,6 @@ export default defineSchema({
         v.literal("failed")
       )
     ),
-    triggerRunId: v.optional(v.string()),
     toolCalls: v.optional(
       v.array(
         v.object({

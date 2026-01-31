@@ -492,21 +492,6 @@ export const cancelMessage = mutation({
   },
 });
 
-export const updateMessageTriggerRunId = mutation({
-  args: {
-    internalKey: v.string(),
-    messageId: v.id("messages"),
-    triggerRunId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    validateInternalKey(args.internalKey);
-
-    await ctx.db.patch(args.messageId, {
-      triggerRunId: args.triggerRunId,
-    });
-  },
-});
-
 export const streamMessageContent = mutation({
   args: {
     internalKey: v.string(),
