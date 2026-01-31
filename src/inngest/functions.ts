@@ -67,12 +67,6 @@ export const generateProject = inngest.createFunction(
       await logEvent({ type: "step", message: "Completed validate-input" });
     });
 
-    const tools = createFileTools(projectId, internalKey, convex);
-    await step.run("initialize-tools", async () => {
-      await logEvent({ type: "step", message: "Starting initialize-tools" });
-      await logEvent({ type: "step", message: "Completed initialize-tools" });
-    });
-
     type GenerationToolChoice = ToolChoice<ReturnType<typeof createFileTools>>;
 
     const defaultToolChoice = (stepNumber: number): GenerationToolChoice =>
@@ -91,6 +85,11 @@ export const generateProject = inngest.createFunction(
     }): Promise<GenerateTextWithToolsResult> => {
       return await step.run(id, async () => {
         await logEvent({ type: "step", message: `Starting ${id}` });
+
+        const stepConvex = new ConvexHttpClient(convexUrl);
+        stepConvex.setAuth(convexToken);
+        const tools = createFileTools(projectId, internalKey, stepConvex);
+
         try {
           const result = await generateTextWithToolsPreferCerebras({
             system: SYSTEM_PROMPT,
