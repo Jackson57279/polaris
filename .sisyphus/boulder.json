@@ -1,8 +1,8 @@
 {
-  "active_plan": "/home/dih/polaris/.sisyphus/plans/fix-billing-bugs.md",
-  "started_at": "2026-01-26T02:00:53.601Z",
+  "active_plan": "/home/dih/polaris/.sisyphus/plans/trigger-migration.md",
+  "started_at": "2026-01-31T14:20:15.000Z",
   "session_ids": [
     "ses_4080eedf8ffehxhN1c6Vrv9iGK"
   ],
-  "plan_name": "fix-billing-bugs"
+  "plan_name": "trigger-migration"
 }

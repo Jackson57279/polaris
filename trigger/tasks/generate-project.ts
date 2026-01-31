@@ -1,16 +1,20 @@
 import { ConvexHttpClient } from "convex/browser";
 import type { ToolChoice } from "ai";
+import { task } from "@trigger.dev/sdk/v3";
 
-import { generateWithFallback } from "@/lib/ai-providers";
 import { createFileTools } from "@/lib/ai-tools";
-import { firecrawl } from "@/lib/firecrawl";
 import { generateTextWithToolsPreferCerebras, type GenerateTextWithToolsResult } from "@/lib/generate-text-with-tools";
 
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { inngest } from "./client";
 
-const URL_REGEX = /https?:\/\/[^\s]+/g;
+interface GenerateProjectPayload {
+  projectId: Id<"projects">;
+  description: string;
+  internalKey: string;
+  convexUrl: string;
+  convexToken: string;
+}
 
 const SYSTEM_PROMPT = `You are an expert software developer. Generate project files based on the user's description.
 
@@ -22,23 +26,15 @@ Use the tools to create or update files. Keep each step focused on only the file
 
 Focus on creating functional, production-ready code.`;
 
-export const generateProject = inngest.createFunction(
-  { id: "generate-project" },
-  { event: "project/generate" },
-  async ({ event, step }) => {
-    const { projectId, description, internalKey, convexUrl, convexToken } =
-      event.data as {
-        projectId: Id<"projects">;
-        description: string;
-        internalKey: string;
-        convexUrl: string;
-        convexToken: string;
-      };
+export const generateProject = task({
+  id: "generate-project",
+  run: async (payload: GenerateProjectPayload) => {
+    const { projectId, description, internalKey, convexUrl, convexToken } = payload;
 
     const convex = new ConvexHttpClient(convexUrl);
     convex.setAuth(convexToken);
 
-    const logEvent = async (payload: {
+    const logEvent = async (eventPayload: {
       type: "step" | "file" | "info" | "error";
       message: string;
       filePath?: string;
@@ -48,24 +44,21 @@ export const generateProject = inngest.createFunction(
         await convex.mutation(api.system.appendGenerationEvent, {
           internalKey,
           projectId,
-          ...payload,
+          ...eventPayload,
         });
       } catch {
-        // Best-effort logging.
       }
     };
 
-    await step.run("validate-input", async () => {
-      await logEvent({ type: "step", message: "Starting validate-input" });
-      if (!description.trim()) {
-        await logEvent({
-          type: "error",
-          message: "Validation failed: description is required",
-        });
-        throw new Error("Description is required");
-      }
-      await logEvent({ type: "step", message: "Completed validate-input" });
-    });
+    await logEvent({ type: "step", message: "Starting validate-input" });
+    if (!description.trim()) {
+      await logEvent({
+        type: "error",
+        message: "Validation failed: description is required",
+      });
+      throw new Error("Description is required");
+    }
+    await logEvent({ type: "step", message: "Completed validate-input" });
 
     type GenerationToolChoice = ToolChoice<ReturnType<typeof createFileTools>>;
 
@@ -83,43 +76,41 @@ export const generateProject = inngest.createFunction(
       maxSteps?: number;
       toolChoice?: (stepNumber: number) => GenerationToolChoice;
     }): Promise<GenerateTextWithToolsResult> => {
-      return await step.run(id, async () => {
-        await logEvent({ type: "step", message: `Starting ${id}` });
+      await logEvent({ type: "step", message: `Starting ${id}` });
 
-        const stepConvex = new ConvexHttpClient(convexUrl);
-        stepConvex.setAuth(convexToken);
-        const tools = createFileTools(projectId, internalKey, stepConvex);
+      const stepConvex = new ConvexHttpClient(convexUrl);
+      stepConvex.setAuth(convexToken);
+      const tools = createFileTools(projectId, internalKey, stepConvex);
 
-        try {
-          const result = await generateTextWithToolsPreferCerebras({
-            system: SYSTEM_PROMPT,
-            messages: [
-              {
-                role: "user",
-                content: `Project description:\n${description}\n\n${prompt}`,
-              },
-            ],
-            tools,
-            maxSteps,
-            maxTokens: 2000,
-            toolChoice: toolChoice ?? defaultToolChoice,
-            onStepFinish: async ({ toolCalls }) => {
-              if (toolCalls && toolCalls.length > 0) {
-                await logEvent({
-                  type: "info",
-                  message: `${id} emitted ${toolCalls.length} tool call(s)`,
-                });
-              }
+      try {
+        const result = await generateTextWithToolsPreferCerebras({
+          system: SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: `Project description:\n${description}\n\n${prompt}`,
             },
-          });
-          await logEvent({ type: "step", message: `Completed ${id}` });
-          return result;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
-          await logEvent({ type: "error", message: `${id} failed: ${message}` });
-          throw error;
-        }
-      });
+          ],
+          tools,
+          maxSteps,
+          maxTokens: 2000,
+          toolChoice: toolChoice ?? defaultToolChoice,
+          onStepFinish: async ({ toolCalls }) => {
+            if (toolCalls && toolCalls.length > 0) {
+              await logEvent({
+                type: "info",
+                message: `${id} emitted ${toolCalls.length} tool call(s)`,
+              });
+            }
+          },
+        });
+        await logEvent({ type: "step", message: `Completed ${id}` });
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        await logEvent({ type: "error", message: `${id} failed: ${message}` });
+        throw error;
+      }
     };
 
     await runGenerationStep({
@@ -188,54 +179,5 @@ export const generateProject = inngest.createFunction(
     });
 
     return { success: true, projectId };
-  }
-);
-
-export const demoGenerate = inngest.createFunction(
-  { id: "demo-generate" },
-  { event: "demo/generate" },
-  async ({ event, step }) => {
-    const { prompt } = event.data as { prompt: string };
-
-    const urls = (await step.run("extract-urls", async () => {
-      return prompt.match(URL_REGEX) ?? [];
-    })) as string[];
-
-    const scrapedContent = await step.run("scrape-urls", async () => {
-      if (!firecrawl) {
-        return "";
-      }
-
-      const results = await Promise.all(
-        urls.map(async (url) => {
-          if (!firecrawl) return null;
-          const result = await firecrawl.scrape(url, { formats: ["markdown"] });
-          return result.markdown ?? null;
-        })
-      );
-
-      return results.filter(Boolean).join("\n\n");
-    });
-
-    const finalPrompt = scrapedContent
-      ? `Context:\n${scrapedContent}\n\nQuestion: ${prompt}`
-      : prompt;
-
-    await step.run("generate-text", async () => {
-      return await generateWithFallback(
-        [{ role: "user", content: finalPrompt }],
-        { temperature: 0.7, max_tokens: 2000 }
-      );
-    });
-  }
-);
-
-export const demoError = inngest.createFunction(
-  { id: "demo-error" },
-  { event: "demo/error" },
-  async ({ step }) => {
-    await step.run("fail", async () => {
-      throw new Error("Inngest error: Background job failed!");
-    });
-  }
-);
+  },
+});

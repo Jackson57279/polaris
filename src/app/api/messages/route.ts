@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/stack-auth-api";
+import { tasks, runs } from "@trigger.dev/sdk/v3";
 
-import { inngest } from "@/inngest/client";
 import { convex } from "@/lib/convex-client";
 
 import { api } from "../../../../convex/_generated/api";
@@ -82,17 +82,19 @@ export async function POST(request: Request) {
     }
   );
 
-  // TODO: Invoke inngest to process the message
-  const event = await inngest.send({
-    name: "message/sent",
-    data: {
-      messageId: assistantMessageId,
-    },
+  const handle = await tasks.trigger("process-message", {
+    messageId: assistantMessageId,
+  });
+
+  await convex.mutation(api.system.updateMessageTriggerRunId, {
+    internalKey,
+    messageId: assistantMessageId,
+    triggerRunId: handle.id,
   });
 
   return NextResponse.json({
     success: true,
-    eventId: event.ids[0],
+    runId: handle.id,
     messageId: assistantMessageId,
   });
 }
@@ -116,12 +118,14 @@ export async function DELETE(request: Request) {
   const body = await request.json();
   const { messageId } = deleteRequestSchema.parse(body);
 
-  await inngest.send({
-    name: "message/cancel",
-    data: {
-      messageId,
-    },
+  const message = await convex.query(api.system.getMessageById, {
+    internalKey,
+    messageId: messageId as Id<"messages">,
   });
+
+  if (message?.triggerRunId) {
+    await runs.cancel(message.triggerRunId);
+  }
 
   await convex.mutation(api.system.cancelMessage, {
     internalKey,

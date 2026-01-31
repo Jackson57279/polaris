@@ -1,6 +1,4 @@
-import { NonRetriableError } from "inngest";
-
-import { inngest } from "@/inngest/client";
+import { task } from "@trigger.dev/sdk/v3";
 import { createFileTools } from "@/lib/ai-tools";
 import { createLSPTools } from "@/lib/lsp-tools";
 import { createSearchTools } from "@/lib/search-tools";
@@ -9,10 +7,10 @@ import { createContextTools } from "@/lib/context-tools";
 import { convex } from "@/lib/convex-client";
 import { streamTextWithToolsPreferCerebras } from "@/lib/generate-text-with-tools";
 
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 
-interface MessageEvent {
+interface ProcessMessagePayload {
   messageId: Id<"messages">;
 }
 
@@ -52,74 +50,44 @@ When writing code, ensure it is well-structured, follows best practices, and inc
 
 Be concise in your responses. Focus on helping the user accomplish their coding tasks.`;
 
-export const processMessage = inngest.createFunction(
-  {
-    id: "process-message",
-    cancelOn: [
-      {
-        event: "message/cancel",
-        if: "event.data.messageId == async.data.messageId",
-      },
-    ],
-    onFailure: async ({ event, step }) => {
-      const { messageId } = event.data.event.data as MessageEvent;
-      const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
-
-      if (internalKey) {
-        await step.run("update-message-on-failure", async () => {
-          await convex.mutation(api.system.updateMessageContent, {
-            internalKey,
-            messageId,
-            content:
-              "My apologies, I encountered an error while processing your request. Let me know if you need anything else!",
-            status: "failed",
-          });
-        });
-      }
-    },
-  },
-  {
-    event: "message/sent",
-  },
-  async ({ event, step }) => {
-    const { messageId } = event.data as MessageEvent;
+export const processMessage = task({
+  id: "process-message",
+  run: async (payload: ProcessMessagePayload, { ctx }) => {
+    const { messageId } = payload;
 
     const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
 
     if (!internalKey) {
-      throw new NonRetriableError("POLARIS_CONVEX_INTERNAL_KEY is not configured");
+      throw new Error("POLARIS_CONVEX_INTERNAL_KEY is not configured");
     }
 
-    const context = await step.run("get-message-context", async () => {
-      return await convex.query(api.system.getMessageContext, {
+    try {
+      const context = await convex.query(api.system.getMessageContext, {
         internalKey,
         messageId,
       });
-    });
 
-     const fileTools = createFileTools(context.projectId, internalKey);
-     const lspTools = createLSPTools(context.projectId, internalKey);
-     const searchTools = createSearchTools(context.projectId, internalKey);
-     const terminalTools = createTerminalTools(context.projectId, internalKey);
-     const contextTools = createContextTools(context.projectId, internalKey);
+      const fileTools = createFileTools(context.projectId, internalKey);
+      const lspTools = createLSPTools(context.projectId, internalKey);
+      const searchTools = createSearchTools(context.projectId, internalKey);
+      const terminalTools = createTerminalTools(context.projectId, internalKey);
+      const contextTools = createContextTools(context.projectId, internalKey);
 
-     const tools = {
-       ...fileTools,
-       ...lspTools,
-       ...searchTools,
-       ...terminalTools,
-       ...contextTools,
-     };
+      const tools = {
+        ...fileTools,
+        ...lspTools,
+        ...searchTools,
+        ...terminalTools,
+        ...contextTools,
+      };
 
-    let lastStreamUpdate = 0;
-    const STREAM_THROTTLE_MS = 100;
+      let lastStreamUpdate = 0;
+      const STREAM_THROTTLE_MS = 100;
 
-    // Performance metrics tracking
-    const metricsStartTime = Date.now();
-    let timeToFirstToken: number | null = null;
-    let firstChunkReceived = false;
+      const metricsStartTime = Date.now();
+      let timeToFirstToken: number | null = null;
+      let firstChunkReceived = false;
 
-    const result = await step.run("generate-ai-response", async () => {
       const response = await streamTextWithToolsPreferCerebras({
         system: SYSTEM_PROMPT,
         messages: context.messages,
@@ -127,7 +95,6 @@ export const processMessage = inngest.createFunction(
         maxSteps: 10,
         maxTokens: 2000,
         onTextChunk: async (_chunk: string, fullText: string) => {
-          // Track time to first token
           if (!firstChunkReceived) {
             timeToFirstToken = Date.now() - metricsStartTime;
             firstChunkReceived = true;
@@ -182,23 +149,32 @@ export const processMessage = inngest.createFunction(
         },
       });
 
-      return response.text;
-    });
-
-    await step.run("update-assistant-message", async () => {
       await convex.mutation(api.system.streamMessageContent, {
         internalKey,
         messageId,
-        content: result || "I've completed the task.",
+        content: response.text || "I've completed the task.",
         isComplete: true,
       });
-    });
 
-    // Log total response time
-    const totalResponseTime = Date.now() - metricsStartTime;
-    console.log(`[Metrics] Total response time: ${totalResponseTime}ms`);
-    if (timeToFirstToken !== null) {
-      console.log(`[Metrics] Time to first token: ${timeToFirstToken}ms`);
+      const totalResponseTime = Date.now() - metricsStartTime;
+      console.log(`[Metrics] Total response time: ${totalResponseTime}ms`);
+      if (timeToFirstToken !== null) {
+        console.log(`[Metrics] Time to first token: ${timeToFirstToken}ms`);
+      }
+
+      return { success: true, messageId };
+    } catch (error) {
+      console.error("Error processing message:", error);
+
+      await convex.mutation(api.system.updateMessageContent, {
+        internalKey,
+        messageId,
+        content:
+          "My apologies, I encountered an error while processing your request. Let me know if you need anything else!",
+        status: "failed",
+      });
+
+      throw error;
     }
-  }
-);
+  },
+});

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/stack-auth-api";
 import { ConvexHttpClient } from "convex/browser";
 
-import { inngest } from "@/inngest/client";
+import { tasks } from "@trigger.dev/sdk/v3";
 import { checkAccess, trackUsage } from "@/lib/autumn-server";
 import { api } from "../../../../../convex/_generated/api";
 
@@ -73,20 +73,18 @@ export async function POST(request: Request) {
 
     await trackUsage(userId, FEATURE_ID, 1);
 
-    await inngest.send({
-      name: "project/generate",
-      data: {
-        projectId,
-        description,
-        internalKey,
-        convexUrl,
-        convexToken: token,
-      },
+    const handle = await tasks.trigger("generate-project", {
+      projectId,
+      description,
+      internalKey,
+      convexUrl,
+      convexToken: token,
     });
 
     return NextResponse.json({
       success: true,
       projectId,
+      runId: handle.id,
     });
   } catch (error) {
     console.error("Project generation failed:", error);
