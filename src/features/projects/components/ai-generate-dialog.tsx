@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ky, { HTTPError } from "ky";
 import { toast } from "sonner";
-import { SparklesIcon, LoaderIcon } from "lucide-react";
+import { SparklesIcon, LoaderIcon, XIcon } from "lucide-react";
 
 import {
   Dialog,
@@ -18,10 +18,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 
 interface AIGenerateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface GenerationStatus {
+  status: "processing" | "completed" | "failed";
+  progress: number;
+  currentStep: string;
+  events: Array<{
+    type: "step" | "file" | "info" | "error";
+    message: string;
+    filePath?: string;
+    preview?: string;
+    createdAt: number;
+  }>;
 }
 
 export function AIGenerateDialog({
@@ -32,6 +46,63 @@ export function AIGenerateDialog({
   const [description, setDescription] = useState("");
   const [projectName, setProjectName] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
+  const clearPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [pollingInterval]);
+
+  useEffect(() => {
+    return () => {
+      clearPolling();
+    };
+  }, [clearPolling]);
+
+  useEffect(() => {
+    if (!open) {
+      clearPolling();
+      setIsGenerating(false);
+      setProjectId(null);
+      setGenerationStatus(null);
+    }
+  }, [open, clearPolling]);
+
+  const pollStatus = useCallback(async (pid: string) => {
+    try {
+      const status = await ky
+        .get(`/api/projects/generate/status/${pid}`)
+        .json<GenerationStatus>();
+
+      setGenerationStatus(status);
+
+      if (status.status === "completed") {
+        clearPolling();
+        toast.success("Project generated successfully!");
+        onOpenChange(false);
+        setDescription("");
+        setProjectName("");
+        router.push(`/projects/${pid}`);
+      } else if (status.status === "failed") {
+        clearPolling();
+        setIsGenerating(false);
+        toast.error("Project generation failed");
+      }
+    } catch (error) {
+      console.error("Failed to poll status:", error);
+    }
+  }, [clearPolling, onOpenChange, router]);
+
+  const handleCancel = () => {
+    clearPolling();
+    setIsGenerating(false);
+    setProjectId(null);
+    setGenerationStatus(null);
+  };
 
   const handleGenerate = async () => {
     if (!description) return;
@@ -42,25 +113,58 @@ export function AIGenerateDialog({
       const response = await ky
         .post("/api/projects/generate", {
           json: { description, projectName: projectName || undefined },
-          timeout: 120000,
         })
-        .json<{ success: boolean; projectId: string }>();
+        .json<{ projectId: string; status: string }>();
 
-      toast.success("Project generated successfully!");
-      onOpenChange(false);
-      setDescription("");
-      setProjectName("");
-      router.push(`/projects/${response.projectId}`);
+      setProjectId(response.projectId);
+
+      // Start polling every 2 seconds
+      const interval = setInterval(() => {
+        pollStatus(response.projectId);
+      }, 2000);
+
+      setPollingInterval(interval);
+
+      // Initial poll
+      pollStatus(response.projectId);
     } catch (error) {
+      setIsGenerating(false);
       if (error instanceof HTTPError) {
         const body = await error.response.json();
         toast.error(body.error || "Failed to generate project");
       } else {
         toast.error("Failed to generate project");
       }
-    } finally {
-      setIsGenerating(false);
     }
+  };
+
+  const getCurrentStepDisplay = () => {
+    if (!generationStatus) return "Starting...";
+    
+    const stepMap: Record<string, string> = {
+      "Starting validate-input": "Validating input...",
+      "Completed validate-input": "Input validated",
+      "Starting generate-config-files": "Generating configuration files...",
+      "Completed generate-config-files": "Configuration files created",
+      "Starting generate-source-structure": "Generating source structure...",
+      "Completed generate-source-structure": "Source structure created",
+      "Starting generate-components": "Generating components...",
+      "Completed generate-components": "Components created",
+      "Starting generate-pages": "Generating pages...",
+      "Completed generate-pages": "Pages created",
+      "Starting generate-hooks": "Generating hooks...",
+      "Completed generate-hooks": "Hooks created",
+      "Starting generate-types": "Generating types...",
+      "Completed generate-types": "Types created",
+      "Starting generate-utilities": "Generating utilities...",
+      "Completed generate-utilities": "Utilities created",
+      "Starting finalize-readme": "Finalizing README...",
+      "Completed finalize-readme": "README created",
+      "Starting verify-project": "Verifying project...",
+      "Completed verify-project": "Project verified",
+    };
+
+    return stepMap[generationStatus.currentStep] || generationStatus.currentStep;
   };
 
   return (
@@ -97,14 +201,35 @@ export function AIGenerateDialog({
               rows={5}
             />
           </div>
+
+          {isGenerating && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{getCurrentStepDisplay()}</span>
+                <span className="text-muted-foreground">{generationStatus?.progress ?? 0}%</span>
+              </div>
+              <Progress value={generationStatus?.progress ?? 0} className="h-2" />
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <LoaderIcon className="size-4 animate-spin" />
+                <span>Generating your project...</span>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isGenerating}
+            onClick={() => isGenerating ? handleCancel() : onOpenChange(false)}
+            disabled={false}
           >
-            Cancel
+            {isGenerating ? (
+              <>
+                <XIcon className="size-4 mr-1" />
+                Cancel
+              </>
+            ) : (
+              "Close"
+            )}
           </Button>
           <Button
             onClick={handleGenerate}
