@@ -1,7 +1,7 @@
-import { ProjectsView } from "@/features/projects/components/projects-view";
+import { LandingPage } from "@/features/auth/components/landing-page";
 
 const Home = () => {
-  return <ProjectsView />
+  return <LandingPage />;
 };
 
 export default Home;
